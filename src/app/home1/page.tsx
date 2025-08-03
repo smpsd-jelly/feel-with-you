@@ -1,7 +1,7 @@
 "use client";
 
-import EmotionDisplayComponent from "@/components/musicCard/EmotionDisplayComponent";
-import MusicCardComponent from "@/components/musicCard/MusicCardComponent";
+import EmotionDisplayComponent from "@/components/EmotionDisplayComponent";
+import MusicCardComponent from "@/components/music/MusicCardComponent";
 import { PlayCircleIcon } from "@heroicons/react/16/solid";
 import { motion } from "framer-motion";
 import Image from "next/image";
@@ -25,15 +25,11 @@ export default function HomePage() {
     >
       <div className="absolute top-4 right-4 z-50">
         <MusicCardComponent
-          trackIds={[
-            "2dhMTwg7O8n4kFYLpCaLC4",
-            "4Yg2lUUPVk9oqbR4ubQ6BU",
-            "2L98ftReSp3kqlzxGSTLtY",
-          ]}
+          videoIds={["vUujpXp51Cc", "AnP2csy1Oak", "nVUzvmSb6Rs"]}
         />
       </div>
       <div className="flex flex-col justify-center items-center">
-        <EmotionDisplayComponent emotion={'happy'} showText={false}  />
+        <EmotionDisplayComponent emotion={"happy"} showText={false} />
 
         <h3 className="text-xl sm:text-2xl text-center">สวัสดี ...</h3>
         <h3 className="text-xl sm:text-2xl text-center">เป็นอย่างไรบ้างนะ ?</h3>

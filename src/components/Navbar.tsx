@@ -10,12 +10,12 @@ interface NavbarProps {
 export default function Navbar({ activePage }: NavbarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuItems = [
-    { id: 1, label: 'Home' },
-    { id: 2, label: 'Daily Questions' },
-    { id: 3, label: 'Mood Tracker' },
-    { id: 4, label: 'Note' },
-    { id: 5, label: 'Jigsaw' },
-    { id: 6, label: 'About us' },
+    { id: 1, label: 'Home', href: '/home2' },
+    { id: 2, label: 'Daily Questions', href: '/question' },
+    { id: 3, label: 'Mood Tracker', href: '/moodtracker/intro' },
+    { id: 4, label: 'Note', href: '/note' },
+    { id: 5, label: 'Jigsaw', href: '/jigsaw' },
+    { id: 6, label: 'About us', href: '/about' },
   ];
 
   return (
@@ -26,7 +26,7 @@ export default function Navbar({ activePage }: NavbarProps) {
           <div className="flex items-center">
             <img
               className="h-12 w-auto"
-              src="images/icon.png"
+              src="/images/icon.png"
               alt="Logo"
             />
           </div>
@@ -46,7 +46,7 @@ export default function Navbar({ activePage }: NavbarProps) {
             {menuItems.map((item) => (
               <a
                 key={item.id}
-                href="#"
+                href={item.href}
                 className={`px-3 py-2 text-sm font-medium ${
                   activePage === item.id
                     ? 'text-[#FF8DD8]'
@@ -72,7 +72,7 @@ export default function Navbar({ activePage }: NavbarProps) {
           {menuItems.map((item) => (
             <a
               key={item.id}
-              href="#"
+              href={item.href}
               className={`block px-3 py-2 rounded-md text-base font-medium ${
                 activePage === item.id
                   ? 'text-[#FF8DD8]'
