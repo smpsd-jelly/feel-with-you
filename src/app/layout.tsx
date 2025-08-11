@@ -1,6 +1,7 @@
 import './globals.css'
 import { Metadata } from 'next'
 import { Kanit, Sora } from 'next/font/google'
+import Providers from '@/components/Providers'
 
 const kanit = Kanit({
   subsets: ['thai', 'latin'],
@@ -24,7 +25,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
    <html lang="th" className={`${kanit.variable}`}>
   <body className="font-sans">
+    <Providers>
     {children}
+    </Providers>
   </body>
 </html>
   )

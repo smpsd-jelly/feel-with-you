@@ -1,36 +1,59 @@
+"use client";
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import Image from "next/image";
+import toast, { Toaster } from "react-hot-toast";
+import { PlayCircleIcon } from "@heroicons/react/24/solid";
+import { useRouter } from "next/navigation";
+import { DocumentNode, gql, useMutation } from "@apollo/client";
+import { useSession } from "next-auth/react";
 
-'use client'
-import { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import Image from 'next/image'
-import toast, { Toaster } from 'react-hot-toast'
-import { PlayCircleIcon } from '@heroicons/react/24/solid'
-import { useRouter } from 'next/navigation'
+const UPDATE_USER = gql`
+  mutation UpdateUser($email: String!, $name: String, $first_login: String) {
+    updateUser(email: $email, name: $name, first_login: $first_login) {
+      id
+      email
+      name
+      first_login
+    }
+  }
+`;
 
 export default function Intro() {
-  const [showState2, setShowState2] = useState(false)
-  const [showState3, setShowState3] = useState(false)
-  const [name, setName] = useState('')
-  const router = useRouter()
+  const [showState2, setShowState2] = useState(false);
+  const [showState3, setShowState3] = useState(false);
+  const [name, setName] = useState("");
+  const router = useRouter();
+  const { data: session } = useSession();
+  const email = (session?.user?.email ?? "").trim();
 
-  const handleNext = () => {
+  const [updateUser, { loading }] = useMutation(UPDATE_USER);
+
+  const handleNext = async () => {
     if (!name.trim()) {
-      toast('อย่าลืมกรอกชื่อนะ 😊\nเราอยากรู้จักคุณมากกว่านี้ ❤️', {
-        icon: '🔔',
+      toast("อย่าลืมกรอกชื่อนะ 😊\nเราอยากรู้จักคุณมากกว่านี้ ❤️", {
+        icon: "🔔",
         style: {
-          border: '1px solid #FF8DD8',
-          padding: '16px',
-          color: '#800055',
-          background: '#FFF0FA',
+          border: "1px solid #FF8DD8",
+          padding: "16px",
+          color: "#800055",
+          background: "#FFF0FA",
         },
         iconTheme: {
-          primary: '#FF8DD8',
-          secondary: '#FFF0FA',
+          primary: "#FF8DD8",
+          secondary: "#FFF0FA",
         },
       });
       return;
     }
-    setShowState3(true);
+    try {
+      await updateUser({
+        variables: { email, name: name.trim() },
+      });
+      setShowState3(true);
+    } catch (err: any) {
+      toast.error(`บันทึกชื่อไม่สำเร็จ: ${err.message}`);
+    }
   };
 
   const handlePageClick = () => {
@@ -39,12 +62,20 @@ export default function Intro() {
     }
   };
 
-   const handleClickToHome = () => {
-    setTimeout(() => {
-      router.push('/home1')
-    }, 500)
-  }
-
+  const handleClickToHome = async () => {
+    try {
+      const now = new Date().toISOString();
+      await updateUser({
+        variables: { email, first_login: now },
+      });
+    } catch (err: any) {
+      toast.error(`บันทึกครั้งแรกไม่สำเร็จ: ${err.message}`);
+    } finally {
+      setTimeout(() => {
+        router.push("/home1");
+      }, 300);
+    }
+  };
 
   return (
     <motion.main
@@ -66,7 +97,12 @@ export default function Intro() {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.8 }}
           >
-            <Image src="/images/cloud-default.png" alt="" width={400} height={400} />
+            <Image
+              src="/images/cloud-default.png"
+              alt=""
+              width={400}
+              height={400}
+            />
           </motion.div>
         ) : !showState3 ? (
           <>
@@ -78,7 +114,12 @@ export default function Intro() {
               exit={{ opacity: 0 }}
               transition={{ duration: 1 }}
             >
-              <Image src="/images/cloud-default.png" alt="" width={400} height={400} />
+              <Image
+                src="/images/cloud-default.png"
+                alt=""
+                width={400}
+                height={400}
+              />
             </motion.div>
 
             <motion.div
@@ -91,7 +132,7 @@ export default function Intro() {
             >
               <div
                 className="w-full max-w-md mx-auto mt-10"
-                onClick={(e) => e.stopPropagation()} // ป้องกันไม่ให้คลิกใน input ทำให้ reset state
+                onClick={(e) => e.stopPropagation()}
               >
                 <h1 className="text-2xl sm:text-3xl font-bold mb-6 text-center">
                   สวัสดี เธอชื่ออะไรหรอ ?
@@ -146,15 +187,15 @@ export default function Intro() {
               <h3 className="text-xl sm:text-2xl text-center">
                 ยังมีพวกเรานะ ให้พวกเราเป็นก้อนเมฆนุ่ม ๆ โอบกอดคุณไว้นะ
               </h3>
-              <div className='flex justify-center items-center'>
+              <div className="flex justify-center items-center">
                 <button onClick={handleClickToHome}>
-                    <PlayCircleIcon
-                      style={{
-                        color: '#FF8DD8',
-                        width: 'clamp(70px, 5vw, 120px)',
-                        height: 'clamp(70px, 5vw, 120px)',
-                      }}
-                    />
+                  <PlayCircleIcon
+                    style={{
+                      color: "#FF8DD8",
+                      width: "clamp(70px, 5vw, 120px)",
+                      height: "clamp(70px, 5vw, 120px)",
+                    }}
+                  />
                 </button>
               </div>
             </div>
@@ -162,5 +203,5 @@ export default function Intro() {
         )}
       </AnimatePresence>
     </motion.main>
-  )
+  );
 }
