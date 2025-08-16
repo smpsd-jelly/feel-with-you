@@ -151,7 +151,6 @@ export default function Jigsaw() {
 
       <div className="relative z-10 flex min-h-screen flex-col">
         <Navbar activePage={5} />
-       
 
         <div className="flex flex-1 flex-col items-center justify-start gap-4 px-4">
           <motion.h2
@@ -176,7 +175,7 @@ export default function Jigsaw() {
               เริ่มเกมใหม่ (สุ่ม 5 รูป)
             </button>
           </div>
- <Toaster position="top-center" />
+          <Toaster position="top-center" />
           <div
             className="bg-[#FFE6F7]/85 rounded-2xl shadow-md w-full max-w-[1100px] mx-auto p-8 flex flex-col items-center justify-center overflow-hidden"
             style={{ minHeight: "70vh" }}
