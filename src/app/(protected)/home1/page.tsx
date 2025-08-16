@@ -2,7 +2,10 @@
 
 import EmotionDisplayComponent from "@/components/EmotionDisplayComponent";
 import MusicCardComponent from "@/components/music/MusicCardComponent";
+<<<<<<< HEAD:src/app/(protected)/home1/page.tsx
 import { gql, useQuery } from "@apollo/client";
+=======
+>>>>>>> a4e3c440c9efa38dc87f46ba556ec40731b255be:src/app/home1/page.tsx
 import { PlayCircleIcon } from "@heroicons/react/16/solid";
 import { motion } from "framer-motion";
 import { useSession } from "next-auth/react";
