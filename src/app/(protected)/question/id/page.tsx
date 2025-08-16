@@ -34,40 +34,51 @@ export default function QuestionIntroPage() {
             </div>
 
             <div className="flex flex-wrap md:flex-nowrap justify-center gap-6 md:gap-10 mt-6 mb-4">
-  <div className="flex flex-col items-center w-[120px] sm:w-[140px]">
-    <img className="w-[100px]" src="/images/emotion1.png" alt="ไม่เลย" />
-    <button className="bg-[#72C052] hover:bg-[#62a747] font-medium py-2 px-4 text-sm sm:text-base text-white rounded-xl shadow-md transition text-center w-full mt-2">
-      ไม่เลย
-    </button>
-  </div>
-  <div className="flex flex-col items-center w-[120px] sm:w-[140px]">
-    <img className="w-[100px]" src="/images/emotion1.png" alt="ไม่แน่ใจ" />
-    <button className="bg-[#4BB5F9] hover:bg-[#43a3df] font-medium py-2 px-4 text-sm sm:text-base text-white rounded-xl shadow-md transition text-center w-full mt-2">
-      ไม่แน่ใจ
-    </button>
-  </div>
-  <div className="flex flex-col items-center w-[120px] sm:w-[140px]">
-    <img className="w-[100px]" src="/images/emotion1.png" alt="มากที่สุด" />
-    <button className="bg-[#FF8DD8] hover:bg-[#e47ec0] font-medium py-2 px-4 text-sm sm:text-base text-white rounded-xl shadow-md transition text-center w-full mt-2">
-      มากที่สุด
-    </button>
-  </div>
-
-            </div>
-              <div className="flex flex-col items-center w-full mt-10">
-                <label
-                  htmlFor="message"
-                  className="block mb-2 text-sm font-medium text-gray-900"
-                >
-                  อยากบอกเหตุผลกับเราไหม ?
-                </label>
-                <textarea
-                  id="message"
-                  rows={4}
-                  className="block p-3 w-full max-w-3xl text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-400 focus:border-blue-400 resize-none"
-                  placeholder="คุณอยากแชร์อะไรเพิ่มเติมไหม..."
-                ></textarea>
+              <div className="flex flex-col items-center w-[120px] sm:w-[140px]">
+                <img
+                  className="w-[100px]"
+                  src="/images/emotion1.png"
+                  alt="ไม่เลย"
+                />
+                <button className="bg-[#72C052] hover:bg-[#62a747] font-medium py-2 px-4 text-sm sm:text-base text-white rounded-xl shadow-md transition text-center w-full mt-2">
+                  ไม่เลย
+                </button>
               </div>
+              <div className="flex flex-col items-center w-[120px] sm:w-[140px]">
+                <img
+                  className="w-[100px]"
+                  src="/images/emotion1.png"
+                  alt="ไม่แน่ใจ"
+                />
+                <button className="bg-[#4BB5F9] hover:bg-[#43a3df] font-medium py-2 px-4 text-sm sm:text-base text-white rounded-xl shadow-md transition text-center w-full mt-2">
+                  ไม่แน่ใจ
+                </button>
+              </div>
+              <div className="flex flex-col items-center w-[120px] sm:w-[140px]">
+                <img
+                  className="w-[100px]"
+                  src="/images/emotion1.png"
+                  alt="มากที่สุด"
+                />
+                <button className="bg-[#FF8DD8] hover:bg-[#e47ec0] font-medium py-2 px-4 text-sm sm:text-base text-white rounded-xl shadow-md transition text-center w-full mt-2">
+                  มากที่สุด
+                </button>
+              </div>
+            </div>
+            <div className="flex flex-col items-center w-full mt-10">
+              <label
+                htmlFor="message"
+                className="block mb-2 text-sm font-medium text-gray-900"
+              >
+                อยากบอกเหตุผลกับเราไหม ?
+              </label>
+              <textarea
+                id="message"
+                rows={4}
+                className="block p-3 w-full max-w-3xl text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-400 focus:border-blue-400 resize-none"
+                placeholder="คุณอยากแชร์อะไรเพิ่มเติมไหม..."
+              ></textarea>
+            </div>
           </div>
         </div>
       </motion.main>

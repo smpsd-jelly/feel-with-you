@@ -1,5 +1,6 @@
 'use client';
 
+import { signOut } from 'next-auth/react';
 import { useState } from 'react';
 import { FaBars, FaTimes, FaSignOutAlt } from 'react-icons/fa';
 
@@ -17,6 +18,10 @@ export default function Navbar({ activePage }: NavbarProps) {
     { id: 5, label: 'Jigsaw', href: '/jigsaw' },
     { id: 6, label: 'About us', href: '/about' },
   ];
+
+  const handleLogout = () => {
+    signOut({ callbackUrl: '/login' }); 
+  };
 
   return (
     <nav className="bg-white shadow">
@@ -59,7 +64,7 @@ export default function Navbar({ activePage }: NavbarProps) {
           </div>
 
           <div className="hidden md:flex items-center space-x-4">
-            <button className="flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900">
+            <button onClick={handleLogout} className="flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900">
               <FaSignOutAlt className="h-4 w-4 " /> Logout
             </button>
           </div>
@@ -83,8 +88,7 @@ export default function Navbar({ activePage }: NavbarProps) {
             </a>
           ))}
 
-          {/* Logout */}
-          <a
+          <a onClick={handleLogout}
             href="#"
             className="flex items-center gap-2 px-3 py-2 text-base font-medium text-gray-600 hover:text-gray-900"
           >

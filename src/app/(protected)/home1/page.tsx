@@ -2,19 +2,42 @@
 
 import EmotionDisplayComponent from "@/components/EmotionDisplayComponent";
 import MusicCardComponent from "@/components/music/MusicCardComponent";
+import { gql, useQuery } from "@apollo/client";
 import { PlayCircleIcon } from "@heroicons/react/16/solid";
 import { motion } from "framer-motion";
+import { useSession } from "next-auth/react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 
+const GET_USER_BY_ID = gql`
+  query GetUserById($getUserByIdId: Int!) {
+    getUserById(id: $getUserByIdId) {
+      id
+      name
+    }
+  }
+`;
+
 export default function HomePage() {
   const router = useRouter();
+  const { data: session, status } = useSession();
+  const { data, loading, error } = useQuery(GET_USER_BY_ID, {
+    variables: { getUserByIdId: session?.userId ?? 0 },
+    skip: !session?.userId,
+  });
 
   const handleClickToHome2 = () => {
     setTimeout(() => {
       router.push("/home2");
     }, 500);
   };
+
+  
+  if (status === "loading" || loading) return null;
+  if (error) return <p>Error: {error.message}</p>;
+
+  const user = data?.getUserById;
+
   return (
     <motion.main
       initial={{ opacity: 0 }}
@@ -31,7 +54,7 @@ export default function HomePage() {
       <div className="flex flex-col justify-center items-center">
         <EmotionDisplayComponent emotion={"happy"} showText={false} />
 
-        <h3 className="text-xl sm:text-2xl text-center">สวัสดี ...</h3>
+        <h3 className="text-xl sm:text-2xl text-center">สวัสดี {user.name}</h3>
         <h3 className="text-xl sm:text-2xl text-center">เป็นอย่างไรบ้างนะ ?</h3>
         <div className="flex justify-center items-center">
           <button>
