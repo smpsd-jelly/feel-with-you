@@ -3,6 +3,18 @@
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { useMediaQuery } from "@mui/material";
+import { gql, useQuery } from "@apollo/client";
+
+// function called back-end graphql to show the emotion
+const GET_MOOD_BY_NAME = gql`
+  query GetMoodByName($name: String!) {
+    getMoodByName(name: $name) {
+      id
+      name
+      img_url
+    }
+  }
+`;
 
 interface EmotionDisplayProps {
   emotion: "happy" | "sad" | "angry" | "gloomy";
@@ -36,12 +48,13 @@ const emotionText: Record<
   },
 };
 
-const emotionImage = {
+const fallbackEmotionImage: Record<EmotionDisplayProps["emotion"], string> = {
   happy: "/images/emotion2.png",
   sad: "/images/emotion3.png",
   angry: "/images/emotion4.png",
   gloomy: "/images/emotion1.png",
 };
+
 
 export default function EmotionDisplayComponent({
   emotion,
@@ -50,8 +63,17 @@ export default function EmotionDisplayComponent({
   const isSm = useMediaQuery("(max-width: 640px)");
   const isLg = useMediaQuery("(min-width: 641px) and (max-width: 1024px)");
 
+  // Fetch mood by (case-insensitive) name
+  const { data, loading, error } = useQuery(GET_MOOD_BY_NAME, {
+    variables: { name: emotion.toLowerCase() },
+    fetchPolicy: 'cache-first',          // default, but explicit
+    nextFetchPolicy: 'cache-first',      // keep using cache on variable changes
+    returnPartialData: true,             // render if something is in cache
+    notifyOnNetworkStatusChange: true,   // loading states update on refetch
+  });
+  if (loading) return <p></p>;
+  // Choose text variant
   let text = "";
-
   if (isLg && emotionText[emotion].lg) {
     text = emotionText[emotion].lg;
   } else if (isSm && emotionText[emotion].sm) {
@@ -60,7 +82,17 @@ export default function EmotionDisplayComponent({
     text = emotionText[emotion].default ?? "";
   }
 
-  const image = emotionImage[emotion];
+  // Resolve image src:
+  //    - Prefer GraphQL img_url (DB), which is a RELATIVE path /images/EmotionPic/... from backend
+  //    - If missing, use local fallback
+  const apiBase = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:4000";
+  const dbImgUrl: string | undefined = data?.getMoodByName?.img_url;
+
+  const resolvedSrc = dbImgUrl
+    ? (dbImgUrl.startsWith("/")
+      ? `${apiBase}${dbImgUrl}`
+      : dbImgUrl)
+    : fallbackEmotionImage[emotion];
 
   return (
     <div className="flex flex-col justify-center items-center">
@@ -75,7 +107,7 @@ export default function EmotionDisplayComponent({
           ease: "easeInOut",
         }}
       >
-        <Image src={image} alt={emotion} width={600} height={200} />
+        <Image src={resolvedSrc} alt={emotion} width={600} height={200} />
       </motion.div>
 
       {text && showText && (

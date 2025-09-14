@@ -8,6 +8,18 @@ import { IoCaretBackOutline } from "react-icons/io5";
 import { RxCrossCircled } from "react-icons/rx";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { gql } from "@apollo/client";
+
+// function called back-end graphql to show the emotion
+const GET_MOOD_BY_NAME = gql`
+  query GetMoodByName($name: String!) {
+    getMoodByName(name: $name) {
+      id
+      name
+      img_url
+    }
+  }
+`;
 
 export default function SelectMoodPage() {
   const [emotionStep, setEmotionStep] = useState(1);
@@ -22,6 +34,7 @@ export default function SelectMoodPage() {
       setEmotionStep((prev) => prev - 1);
     }
   };
+
 
   const getEmotion = () => {
     switch (emotionStep) {
@@ -64,7 +77,7 @@ export default function SelectMoodPage() {
         </button>
       </div>
 
-      {/* 🔽 ส่วนกลางของหน้า */}
+      {/* ส่วนกลางของหน้า */}
       <div className="flex-1 flex flex-col items-center mt-8">
         <motion.h2
           className="text-lg md:text-xl lg:text-2xl font-bold text-center"
