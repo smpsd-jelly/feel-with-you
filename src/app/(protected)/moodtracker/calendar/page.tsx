@@ -3,35 +3,77 @@
 import { useMemo } from "react";
 import Navbar from "@/components/Navbar";
 import { motion } from "framer-motion";
+import { gql, useQuery } from "@apollo/client";
+import { useSession } from "next-auth/react";
+import { resolveImgSrc } from "@/utils/resolveImg";
 
-const days = [
-  "SUNDAY",
-  "MONDAY",
-  "TUESDAY",
-  "WEDNESDAY",
-  "THURSDAY",
-  "FRIDAY",
-  "SATURDAY",
-];
+const GET_MOOD_CALENDAR_BY_USER = gql`
+  query GetMoodCalendarByUser($userId: Int!, $start: String!, $end: String!) {
+    getMoodCalendarByUserId(user_id: $userId, start: $start, end: $end) {
+      id
+      mood_date
+      mood { id name img_url }
+    }
+  }
+`;
 
-const mockEmotions: { [day: number]: string } = {
-  2: "/images/emotion1.png",
-  10: "/images/emotion2.png",
-  17: "/images/emotion3.png",
-  28: "/images/emotion4.png",
-};
+const ASSET_BASE = process.env.NEXT_PUBLIC_ASSET_BASE ?? "";
+
+// Helper: UTC month range [start, end)
+function monthUtcRange(d = new Date()) {
+  const start = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1, 0, 0, 0, 0));
+  const end = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1, 0, 0, 0, 0));
+  return { start: start.toISOString(), end: end.toISOString() };
+}
+
+const days = ["SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"];
 
 export default function MoodCalendarPage() {
+  const { data: session } = useSession();
+
+  // Local month info (for header and grid)
   const today = new Date();
   const currentYear = today.getFullYear();
-  const currentMonth = today.getMonth();
+  const currentMonth = today.getMonth(); // 0..11
   const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
   const startDay = firstDayOfMonth.getDay();
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
 
-  const calendarCells = useMemo(() => {
-    const cells = [];
+  // Build month range in UTC for the query
+  const { start, end } = useMemo(() => monthUtcRange(today), [today]);
 
+  // Query calendar rows for this user and month
+  type CalendarItem = { id: number; mood_date: string; mood: { id: number; name: string; img_url: string } };
+  type CalendarResp = { getMoodCalendarByUserId: CalendarItem[] };
+  type CalendarVars = { userId: number; start: string; end: string };
+
+  const { data, loading, error } = useQuery<CalendarResp, CalendarVars>(
+    GET_MOOD_CALENDAR_BY_USER,
+    {
+      skip: !session?.userId,
+      variables: { userId: Number(session?.userId), start, end },
+      fetchPolicy: "cache-and-network",
+    }
+  );
+
+  // dayNumber (1..31) -> image url
+  const emotionsByDay = useMemo<Record<number, string>>(() => {
+    const map: Record<number, string> = {};
+    if (!data?.getMoodCalendarByUserId) return map;
+
+    for (const rec of data.getMoodCalendarByUserId) {
+      const d = new Date(rec.mood_date);
+      const dayNum = d.getDate(); // local day
+      const src = resolveImgSrc(rec.mood?.img_url);
+      if (src) map[dayNum] = src;
+    }
+    return map;
+  }, [data]);
+
+  const calendarCells = useMemo(() => {
+    const cells: JSX.Element[] = [];
+
+    // leading blanks before day 1
     for (let i = 0; i < startDay; i++) {
       cells.push(
         <div
@@ -41,7 +83,9 @@ export default function MoodCalendarPage() {
       );
     }
 
+    // month days
     for (let day = 1; day <= daysInMonth; day++) {
+      const img = emotionsByDay[day];
       cells.push(
         <div
           key={`day-${day}`}
@@ -51,9 +95,9 @@ export default function MoodCalendarPage() {
             {day}
           </div>
           <div className="h-6 sm:h-10 flex items-center justify-center mt-2 sm:mt-4 md:mt-7">
-            {mockEmotions[day] && (
+            {img && (
               <img
-                src={mockEmotions[day]}
+                src={img}
                 alt={`emotion-${day}`}
                 className="w-24 sm:w-28 md:w-36 object-contain"
               />
@@ -64,11 +108,9 @@ export default function MoodCalendarPage() {
     }
 
     return cells;
-  }, [startDay, daysInMonth]);
+  }, [startDay, daysInMonth, emotionsByDay]);
 
-  const monthName = new Intl.DateTimeFormat("en-US", { month: "long" }).format(
-    today
-  );
+  const monthName = new Intl.DateTimeFormat("en-US", { month: "long" }).format(today);
 
   return (
     <motion.main
@@ -99,6 +141,10 @@ export default function MoodCalendarPage() {
             </span>
           </div>
         </div>
+
+        {/* Loading / error states (optional) */}
+        {loading && <div className="mt-3 text-sm text-gray-500">Loading calendar…</div>}
+        {error && <div className="mt-3 text-sm text-red-600">Failed to load calendar.</div>}
 
         <div className="grid grid-cols-7 border mt-4 text-center text-[10px] sm:text-sm md:text-base w-full max-w-[400px] sm:max-w-[1000px]">
           {days.map((day) => (
