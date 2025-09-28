@@ -6,9 +6,15 @@ import { motion } from "framer-motion";
 import { FaRegCheckCircle } from "react-icons/fa";
 import { IoCaretBackOutline } from "react-icons/io5";
 import { RxCrossCircled } from "react-icons/rx";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { gql } from "@apollo/client";
+import {
+  useQuery,
+  useMutation,
+  gql,
+  DocumentNode
+} from "@apollo/client";
+import { useSession } from "next-auth/react";
 
 // function called back-end graphql to show the emotion
 const GET_MOOD_BY_NAME = gql`
@@ -21,9 +27,116 @@ const GET_MOOD_BY_NAME = gql`
   }
 `;
 
+// check if there is already a record for TODAY (UTC day range)
+const GET_MOOD_CALENDAR_BY_USER = gql`
+  query GetMoodCalendarByUser($userId: Int!, $start: String!, $end: String!) {
+    getMoodCalendarByUserId(user_id: $userId, start: $start, end: $end) {
+      id
+      mood_date
+    }
+  }
+`;
+
+// mutation insert/update mood_calendar
+const CREATE_MOOD_CALENDAR = gql`
+  mutation createMoodCalendarByDay($input: CreateMoodCalendarByDayInput!) {
+    createMoodCalendarByDay(input: $input) {
+      id
+      mood_date
+      mood {
+        id
+        name
+        img_url
+      }
+      user {
+        id
+        email
+      }
+    }
+  }
+`;
+
+type EmotionName = "happy" | "sad" | "angry" | "gloomy";
+
+interface MoodData {
+  getMoodByName: { id: number; name: string; img_url: string };
+}
+interface MoodVars { name: string; }
+
+interface CreateResp {
+  createMoodCalendarByDay: {
+    id: number;
+    mood_date: string;
+    mood: { id: number; name: string; img_url: string };
+    user: { id: number; email: string };
+  };
+}
+interface CreateVars {
+  input: { user_id: number; mood_id: number; mood_date?: string };
+}
+
+// UTC day [start, end)
+function todayUtcRange() {
+  const now = new Date();
+  const start = new Date(Date.UTC(
+    now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0
+  ));
+  const end = new Date(Date.UTC(
+    now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1, 0, 0, 0, 0
+  ));
+  return { start: start.toISOString(), end: end.toISOString() };
+}
+
 export default function SelectMoodPage() {
   const [emotionStep, setEmotionStep] = useState(1);
   const router = useRouter();
+
+  const { data: session, status } = useSession();
+
+  // derive current emotion literal
+  const emotionName = useMemo<EmotionName>(() => {
+    switch (emotionStep) {
+      case 1: return "happy";
+      case 2: return "sad";
+      case 3: return "angry";
+      case 4: return "gloomy";
+      default: return "happy";
+    }
+  }, [emotionStep]);
+
+  // compute today's UTC [start, end) once
+  const { start, end } = useMemo(() => todayUtcRange(), []);
+
+  // Check if the user already has a record for today
+  const { data: todayData, loading: checkingToday } = useQuery(
+    GET_MOOD_CALENDAR_BY_USER,
+    {
+      skip: !session?.userId,
+      variables: {
+        userId: Number(session?.userId),
+        start,
+        end,
+      },
+      fetchPolicy: "cache-and-network",
+    }
+  );
+
+  // If a record exists, redirect to calendar
+  useEffect(() => {
+    if (todayData?.getMoodCalendarByUserId?.length > 0) {
+      router.replace("/moodtracker/calendar");
+    }
+  }, [todayData, router]);
+
+  // Get mood by name (to obtain mood_id)
+  const { data, loading: moodLoading, error: moodError } =
+    useQuery<MoodData, MoodVars>(GET_MOOD_BY_NAME, {
+      variables: { name: emotionName },
+    });
+
+  // Mutation to create/update today's mood
+  const [createMoodCalendar, { loading: saveLoading, error: saveError }] =
+    useMutation<CreateResp, CreateVars>(CREATE_MOOD_CALENDAR);
 
   const nextEmotion = () => {
     setEmotionStep((prev) => (prev >= 4 ? 1 : prev + 1));
@@ -35,27 +148,56 @@ export default function SelectMoodPage() {
     }
   };
 
+  const handleSaveMood = async () => {
+    const moodId = data?.getMoodByName?.id;
+    if (!moodId) return;
 
-  const getEmotion = () => {
-    switch (emotionStep) {
-      case 1:
-        return "happy";
-      case 2:
-        return "sad";
-      case 3:
-        return "angry";
-      case 4:
-        return "gloomy";
-      default:
-        return "happy";
+    // ensure we have a numeric user_id if backend expects Int
+    if (!session?.userId) {
+      console.error("No user id in session");
+      return;
+    }
+
+    const userIdNum = Number(session.userId);
+    if (Number.isNaN(userIdNum)) {
+      console.error("Session userId is not a number");
+      return;
+    }
+
+    // Use today UTC midnight as the canonical date
+    const { start: todayIso } = todayUtcRange();
+
+    try {
+      await createMoodCalendar({
+        variables: {
+          input: {
+            user_id: userIdNum,
+            mood_id: moodId,
+            mood_date: todayIso,
+          },
+        },
+      });
+      router.push("/moodtracker/calendar");
+    } catch (err) {
+      console.error("Error saving mood:", err);
     }
   };
 
-  const clickToMoodCalendar = () => {
-    setTimeout(() => {
-      router.push("/moodtracker/calendar");
-    }, 500);
-  };
+  // While session is loading or we're checking today's record, show a small placeholder
+  if (status === "loading" || checkingToday) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        Checking your mood for today…
+      </div>
+    );
+  }
+
+  // If a record exists, the useEffect will redirect; render nothing here
+  // (briefly visible fallback)
+  if (todayData?.getMoodCalendarByUserId?.length > 0) {
+    return null;
+  }
+
   return (
     <motion.main
       initial={{ opacity: 0 }}
@@ -88,11 +230,13 @@ export default function SelectMoodPage() {
           วันนี้ท้องฟ้าของคุณจะเป็นแบบไหนกันนะ :)
         </motion.h2>
         <div className="min-h-[500px] flex items-center justify-center">
-          <EmotionDisplayComponent emotion={getEmotion()} showText={true} />
+          <EmotionDisplayComponent emotion={emotionName} showText={true} />
         </div>
         <button
-          className="w-full max-w-xs bg-[#4BB5F9] hover:bg-[#43a3df] font-medium py-2 px-6 text-sm sm:text-base text-white rounded-3xl shadow-md transition flex items-center justify-center gap-2 mt-6 mb-4"
-          onClick={clickToMoodCalendar}
+          className="w-full max-w-xs bg-[#4BB5F9] hover:bg-[#43a3df] font-medium py-2 px-6 text-sm sm:text-base text-white rounded-3xl shadow-md transition flex items-center justify-center gap-2 mt-6 mb-4 disabled:opacity-60"
+          onClick={handleSaveMood}
+          disabled={moodLoading || saveLoading}
+          title={moodLoading ? "กำลังโหลด..." : saveLoading ? "กำลังบันทึก..." : ""}
         >
           <FaRegCheckCircle />
           วันนี้ฉันเป็นแบบนี้แหละ !
