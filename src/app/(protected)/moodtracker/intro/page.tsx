@@ -99,7 +99,7 @@ export default function MoodTracker() {
           className="bg-[#FF8DD8] hover:bg-[#e676be] font-medium py-2 px-5 text-sm sm:text-base text-white rounded-lg shadow-md transition flex items-center gap-2"
           onClick={ClickToSelectMood}
         >
-          ข้าม <FaFastForward />
+          ไปหน้าปฏิทิน <FaFastForward />
         </button>
       </div>
     </motion.main>
