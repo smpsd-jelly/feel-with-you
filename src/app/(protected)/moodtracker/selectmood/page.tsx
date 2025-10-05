@@ -183,11 +183,9 @@ export default function SelectMoodPage() {
     }
   };
 
-  // While session is loading or we're checking today's record, show a small placeholder
   if (status === "loading" || checkingToday) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        Checking your mood for today…
       </div>
     );
   }
