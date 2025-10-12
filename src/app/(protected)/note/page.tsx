@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 
 import { PlayCircleIcon } from "@heroicons/react/24/solid";
+import { FaFastForward } from "react-icons/fa";
 
 export default function NotePage() {
     const router = useRouter();
@@ -12,6 +13,13 @@ export default function NotePage() {
   const handleClickToNote = async () => {
      router.push("/note/create"); 
   }
+  
+  const handleClickToNoteHistory = () => {
+    setTimeout(() => {
+      router.push("/note/history");
+    }, 500);
+  };
+
   return (
     <motion.main
       initial={{ opacity: 0 }}
@@ -43,6 +51,14 @@ export default function NotePage() {
                 </button>
               </div>
         </motion.h3>
+         <div className="flex flex-col absolute bottom-6 right-6 z-10">
+                <button
+                  className="bg-[#FF8DD8] hover:bg-[#e676be] font-medium py-2 px-5 text-sm sm:text-base text-white rounded-lg shadow-md transition flex items-center gap-2"
+                  onClick={handleClickToNoteHistory}
+                >
+                  ดูบันทึกเก่าของคุณ <FaFastForward />
+                </button>
+              </div>
       </div>
     </motion.main>
   );

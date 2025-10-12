@@ -190,7 +190,6 @@ export default function CreateNotePage() {
             />
           </div>
 
-          {/* ปุ่มบันทึก (ด้านล่างกึ่งกลางการ์ด) */}
           <div className="mt-8 flex justify-center">
             <button
               type="button"

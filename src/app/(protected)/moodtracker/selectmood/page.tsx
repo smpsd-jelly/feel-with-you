@@ -8,12 +8,7 @@ import { IoCaretBackOutline } from "react-icons/io5";
 import { RxCrossCircled } from "react-icons/rx";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  useQuery,
-  useMutation,
-  gql,
-  DocumentNode
-} from "@apollo/client";
+import { useQuery, useMutation, gql, DocumentNode } from "@apollo/client";
 import { useSession } from "next-auth/react";
 
 // function called back-end graphql to show the emotion
@@ -61,7 +56,9 @@ type EmotionName = "happy" | "sad" | "angry" | "gloomy";
 interface MoodData {
   getMoodByName: { id: number; name: string; img_url: string };
 }
-interface MoodVars { name: string; }
+interface MoodVars {
+  name: string;
+}
 
 interface CreateResp {
   createMoodCalendarByDay: {
@@ -75,16 +72,36 @@ interface CreateVars {
   input: { user_id: number; mood_id: number; mood_date?: string };
 }
 
-// UTC day [start, end)
-function todayUtcRange() {
+function todayLocalRangeISO() {
   const now = new Date();
-  const start = new Date(Date.UTC(
-    now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0
-  ));
-  const end = new Date(Date.UTC(
-    now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1, 0, 0, 0, 0
-  ));
-  return { start: start.toISOString(), end: end.toISOString() };
+
+  const localStart = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+    0,
+    0,
+    0,
+    0
+  );
+  const localEnd = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate() + 1,
+    0,
+    0,
+    0,
+    0
+  );
+
+  const startISO = new Date(
+    localStart.getTime() - localStart.getTimezoneOffset() * 60000
+  ).toISOString();
+  const endISO = new Date(
+    localEnd.getTime() - localEnd.getTimezoneOffset() * 60000
+  ).toISOString();
+
+  return { start: startISO, end: endISO, localStartISO: startISO };
 }
 
 export default function SelectMoodPage() {
@@ -96,16 +113,21 @@ export default function SelectMoodPage() {
   // derive current emotion literal
   const emotionName = useMemo<EmotionName>(() => {
     switch (emotionStep) {
-      case 1: return "happy";
-      case 2: return "sad";
-      case 3: return "angry";
-      case 4: return "gloomy";
-      default: return "happy";
+      case 1:
+        return "happy";
+      case 2:
+        return "sad";
+      case 3:
+        return "angry";
+      case 4:
+        return "gloomy";
+      default:
+        return "happy";
     }
   }, [emotionStep]);
 
   // compute today's UTC [start, end) once
-  const { start, end } = useMemo(() => todayUtcRange(), []);
+  const { start, end, localStartISO } = useMemo(() => todayLocalRangeISO(), []);
 
   // Check if the user already has a record for today
   const { data: todayData, loading: checkingToday } = useQuery(
@@ -129,10 +151,13 @@ export default function SelectMoodPage() {
   }, [todayData, router]);
 
   // Get mood by name (to obtain mood_id)
-  const { data, loading: moodLoading, error: moodError } =
-    useQuery<MoodData, MoodVars>(GET_MOOD_BY_NAME, {
-      variables: { name: emotionName },
-    });
+  const {
+    data,
+    loading: moodLoading,
+    error: moodError,
+  } = useQuery<MoodData, MoodVars>(GET_MOOD_BY_NAME, {
+    variables: { name: emotionName },
+  });
 
   // Mutation to create/update today's mood
   const [createMoodCalendar, { loading: saveLoading, error: saveError }] =
@@ -165,7 +190,7 @@ export default function SelectMoodPage() {
     }
 
     // Use today UTC midnight as the canonical date
-    const { start: todayIso } = todayUtcRange();
+    const todayIso = localStartISO;
 
     try {
       await createMoodCalendar({
@@ -185,8 +210,7 @@ export default function SelectMoodPage() {
 
   if (status === "loading" || checkingToday) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-      </div>
+      <div className="min-h-screen flex items-center justify-center"></div>
     );
   }
 
@@ -234,7 +258,9 @@ export default function SelectMoodPage() {
           className="w-full max-w-xs bg-[#4BB5F9] hover:bg-[#43a3df] font-medium py-2 px-6 text-sm sm:text-base text-white rounded-3xl shadow-md transition flex items-center justify-center gap-2 mt-6 mb-4 disabled:opacity-60"
           onClick={handleSaveMood}
           disabled={moodLoading || saveLoading}
-          title={moodLoading ? "กำลังโหลด..." : saveLoading ? "กำลังบันทึก..." : ""}
+          title={
+            moodLoading ? "กำลังโหลด..." : saveLoading ? "กำลังบันทึก..." : ""
+          }
         >
           <FaRegCheckCircle />
           วันนี้ฉันเป็นแบบนี้แหละ !
