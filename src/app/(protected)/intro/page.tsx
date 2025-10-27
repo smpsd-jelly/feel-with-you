@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import toast, { Toaster } from "react-hot-toast";
@@ -24,32 +24,21 @@ export default function Intro() {
   const [showState3, setShowState3] = useState(false);
   const [name, setName] = useState("");
   const router = useRouter();
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const email = (session?.user?.email ?? "").trim();
-
   const [updateUser, { loading }] = useMutation(UPDATE_USER);
+
+  useEffect(() => {
+    if (status === "unauthenticated") router.replace("/login");
+  }, [status, router]);
 
   const handleNext = async () => {
     if (!name.trim()) {
-      toast("อย่าลืมกรอกชื่อนะ 😊\nเราอยากรู้จักคุณมากกว่านี้ ❤️", {
-        icon: "🔔",
-        style: {
-          border: "1px solid #FF8DD8",
-          padding: "16px",
-          color: "#800055",
-          background: "#FFF0FA",
-        },
-        iconTheme: {
-          primary: "#FF8DD8",
-          secondary: "#FFF0FA",
-        },
-      });
+      toast("อย่าลืมกรอกชื่อนะ 😊\nเราอยากรู้จักคุณมากกว่านี้ ❤️", { icon: "🔔" });
       return;
     }
     try {
-      await updateUser({
-        variables: { email, name: name.trim() },
-      });
+      await updateUser({ variables: { email, name: name.trim() } });
       setShowState3(true);
     } catch (err: any) {
       toast.error(`บันทึกชื่อไม่สำเร็จ: ${err.message}`);
@@ -57,22 +46,18 @@ export default function Intro() {
   };
 
   const handlePageClick = () => {
-    if (!showState2) {
-      setShowState2(true);
-    }
+    if (!showState2) setShowState2(true);
   };
 
   const handleClickToHome = async () => {
     try {
       const now = new Date().toISOString();
-      await updateUser({
-        variables: { email, first_login: now },
-      });
+      await updateUser({ variables: { email, first_login: now } });
     } catch (err: any) {
       toast.error(`บันทึกครั้งแรกไม่สำเร็จ: ${err.message}`);
     } finally {
       setTimeout(() => {
-        router.push("/home1");
+        router.push("/home"); 
       }, 300);
     }
   };

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import Navbar from "@/components/Navbar";
 import { motion } from "framer-motion";
 import { gql, useQuery } from "@apollo/client";
@@ -12,7 +12,21 @@ const GET_MOOD_CALENDAR_BY_USER = gql`
     getMoodCalendarByUserId(user_id: $userId, start: $start, end: $end) {
       id
       mood_date
-      mood { id name img_url }
+      mood {
+        id
+        name
+        img_url
+      }
+    }
+  }
+`;
+
+const GET_MOOD_BY_NAME = gql`
+  query GetMoodByName($name: String!) {
+    getMoodByName(name: $name) {
+      id
+      name
+      img_url
     }
   }
 `;
@@ -21,15 +35,77 @@ const ASSET_BASE = process.env.NEXT_PUBLIC_ASSET_BASE ?? "";
 
 // Helper: UTC month range [start, end)
 function monthUtcRange(d = new Date()) {
-  const start = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1, 0, 0, 0, 0));
-  const end = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1, 0, 0, 0, 0));
+  const start = new Date(
+    Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1, 0, 0, 0, 0)
+  );
+  const end = new Date(
+    Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1, 0, 0, 0, 0)
+  );
   return { start: start.toISOString(), end: end.toISOString() };
 }
 
-const days = ["SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"];
+const days = [
+  "SUNDAY",
+  "MONDAY",
+  "TUESDAY",
+  "WEDNESDAY",
+  "THURSDAY",
+  "FRIDAY",
+  "SATURDAY",
+];
+type MoodKey = "happy" | "sad" | "angry" | "gloomy";
+
+const MOOD_META: Array<{
+  key: MoodKey;
+  th: string;
+  en: string;
+  fallback: string;
+}> = [
+  { key: "happy", th: "สดใส", en: "Happy", fallback: "/images/emotion2.png" },
+  { key: "sad", th: "เศร้า", en: "Sad", fallback: "/images/emotion3.png" },
+  { key: "angry", th: "โกรธ", en: "Angry", fallback: "/images/emotion4.png" },
+  {
+    key: "gloomy",
+    th: "หม่นหมอง",
+    en: "Gloomy",
+    fallback: "/images/emotion1.png",
+  },
+];
 
 export default function MoodCalendarPage() {
   const { data: session } = useSession();
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerDay, setPickerDay] = useState<number | null>(null);
+  const [selectedMood, setSelectedMood] = useState<MoodKey | null>(null);
+  const { data: happyQ } = useQuery(GET_MOOD_BY_NAME, {
+    variables: { name: "happy" },
+  });
+  const { data: sadQ } = useQuery(GET_MOOD_BY_NAME, {
+    variables: { name: "sad" },
+  });
+  const { data: angryQ } = useQuery(GET_MOOD_BY_NAME, {
+    variables: { name: "angry" },
+  });
+  const { data: gloomyQ } = useQuery(GET_MOOD_BY_NAME, {
+    variables: { name: "gloomy" },
+  });
+  const moodImages = useMemo<Record<MoodKey, string>>(
+    () => ({
+      happy:
+        resolveImgSrc(happyQ?.getMoodByName?.img_url) ??
+        MOOD_META.find((m) => m.key === "happy")!.fallback,
+      sad:
+        resolveImgSrc(sadQ?.getMoodByName?.img_url) ??
+        MOOD_META.find((m) => m.key === "sad")!.fallback,
+      angry:
+        resolveImgSrc(angryQ?.getMoodByName?.img_url) ??
+        MOOD_META.find((m) => m.key === "angry")!.fallback,
+      gloomy:
+        resolveImgSrc(gloomyQ?.getMoodByName?.img_url) ??
+        MOOD_META.find((m) => m.key === "gloomy")!.fallback,
+    }),
+    [happyQ, sadQ, angryQ, gloomyQ]
+  );
 
   // Local month info (for header and grid)
   const today = new Date();
@@ -42,8 +118,22 @@ export default function MoodCalendarPage() {
   // Build month range in UTC for the query
   const { start, end } = useMemo(() => monthUtcRange(today), [today]);
 
+  const todayDate = today.getDate();
+
+  const openPickerIfToday = (day: number) => {
+    if (day !== todayDate) return;
+    setPickerDay(day);
+    setSelectedMood(null);
+    setPickerOpen(true);
+  };
+  const closePicker = () => setPickerOpen(false);
+
   // Query calendar rows for this user and month
-  type CalendarItem = { id: number; mood_date: string; mood: { id: number; name: string; img_url: string } };
+  type CalendarItem = {
+    id: number;
+    mood_date: string;
+    mood: { id: number; name: string; img_url: string };
+  };
   type CalendarResp = { getMoodCalendarByUserId: CalendarItem[] };
   type CalendarVars = { userId: number; start: string; end: string };
 
@@ -78,7 +168,7 @@ export default function MoodCalendarPage() {
       cells.push(
         <div
           key={`empty-${i}`}
-          className="h-[4rem] sm:h-[6rem] md:h-[7rem] lg:h-[8rem] border border-red-200 bg-white flex flex-col items-center justify-start pt-1"
+          className="h-[4rem] sm:h-[6rem] md:h-[7rem] lg:h-[8rem] border border-red-200 bg-white"
         />
       );
     }
@@ -86,10 +176,19 @@ export default function MoodCalendarPage() {
     // month days
     for (let day = 1; day <= daysInMonth; day++) {
       const img = emotionsByDay[day];
+      const isToday = day === todayDate;
+
       cells.push(
-        <div
+        <button
+          type="button"
           key={`day-${day}`}
-          className="h-[4rem] sm:h-[6rem] md:h-[7rem] lg:h-[8rem] border border-red-200 bg-white flex flex-col items-center justify-start pt-1"
+          onClick={() => openPickerIfToday(day)}
+          className={[
+            "h-[4rem] sm:h-[6rem] md:h-[7rem] lg:h-[8rem] border border-red-200 bg-white flex flex-col items-center justify-start pt-1 transition outline-none",
+            isToday
+              ? "hover:bg-rose-50 focus:ring-2 focus:ring-rose-300"
+              : "opacity-70", // ← แค่จางลงนิดหน่อย
+          ].join(" ")}
         >
           <div className="text-[10px] sm:text-xs font-semibold text-gray-700">
             {day}
@@ -99,18 +198,25 @@ export default function MoodCalendarPage() {
               <img
                 src={img}
                 alt={`emotion-${day}`}
-                className="w-24 sm:w-28 md:w-36 object-contain"
+                className="w-20 sm:w-24 md:w-28 object-contain pointer-events-none"
               />
             )}
           </div>
-        </div>
+          {isToday && (
+            <span className="mt-1 text-[10px] font-medium text-rose-500">
+              Today
+            </span>
+          )}
+        </button>
       );
     }
 
     return cells;
   }, [startDay, daysInMonth, emotionsByDay]);
 
-  const monthName = new Intl.DateTimeFormat("en-US", { month: "long" }).format(today);
+  const monthName = new Intl.DateTimeFormat("en-US", { month: "long" }).format(
+    today
+  );
 
   return (
     <motion.main
@@ -143,8 +249,14 @@ export default function MoodCalendarPage() {
         </div>
 
         {/* Loading / error states (optional) */}
-        {loading && <div className="mt-3 text-sm text-gray-500">Loading calendar…</div>}
-        {error && <div className="mt-3 text-sm text-red-600">Failed to load calendar.</div>}
+        {loading && (
+          <div className="mt-3 text-sm text-gray-500">Loading calendar…</div>
+        )}
+        {error && (
+          <div className="mt-3 text-sm text-red-600">
+            Failed to load calendar.
+          </div>
+        )}
 
         <div className="grid grid-cols-7 border mt-4 text-center text-[10px] sm:text-sm md:text-base w-full max-w-[400px] sm:max-w-[1000px]">
           {days.map((day) => (
@@ -157,6 +269,83 @@ export default function MoodCalendarPage() {
           ))}
           {calendarCells}
         </div>
+
+        {pickerOpen && (
+          <div
+            aria-modal
+            role="dialog"
+            className="fixed inset-0 z-50 flex items-center justify-center"
+          >
+            <div
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+              onClick={closePicker}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 12 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              transition={{ type: "spring", stiffness: 260, damping: 20 }}
+              className="relative z-10 w-[92%] max-w-lg rounded-2xl bg-white p-5 sm:p-6 shadow-2xl"
+            >
+              <div className="mb-3">
+                <h3 className="text-base sm:text-lg font-semibold text-gray-800 text-center">
+                  แก้ไขอารมณ์สำหรับวันที่ {pickerDay}
+                </h3>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+                {MOOD_META.map((m) => {
+                  const active = selectedMood === m.key;
+                  return (
+                    <button
+                      key={m.key}
+                      type="button"
+                      onClick={() => setSelectedMood(m.key)}
+                      className={[
+                        "group flex flex-col items-center rounded-xl border p-3 sm:p-4 bg-white hover:bg-rose-50 transition",
+                        active
+                          ? "border-rose-400 ring-2 ring-rose-300"
+                          : "border-gray-200",
+                      ].join(" ")}
+                    >
+                      <img
+                        src={moodImages[m.key]}
+                        alt={`${m.th} (${m.en})`}
+                        className="w-20 h-14 sm:w-24 sm:h-16 object-contain mb-2"
+                      />
+                      <div className="text-center leading-tight">
+                        <div className="text-[12px] sm:text-sm text-gray-800 font-medium">
+                          {m.th}
+                        </div>
+                        <div className="text-[11px] sm:text-xs text-gray-500">
+                          ({m.en})
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="mt-5 sm:mt-6 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={closePicker}
+                  className="px-4 py-2 text-sm rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700"
+                >
+                  ปิด
+                </button>
+                <button
+                  type="button"
+                  onClick={closePicker}
+                  className="px-4 py-2 text-sm rounded-lg bg-[#4BB5F9] hover:bg-[#43a3df] text-white disabled:opacity-60"
+                  disabled={!selectedMood}
+                  title={!selectedMood ? "กรุณาเลือกอารมณ์ก่อน" : ""}
+                >
+                  ยืนยัน
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
       </div>
     </motion.main>
   );
