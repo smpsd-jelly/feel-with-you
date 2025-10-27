@@ -9,7 +9,7 @@ export default function MusicPage() {
 
   const backToHome = () => {
     setTimeout(() => {
-      router.push("/home2");
+      router.push("/home");
     }, 500);
   };
 

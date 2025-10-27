@@ -28,7 +28,9 @@ export default async function AfterLogin() {
   if (!session?.user?.email) redirect("/login");
 
   const user = await fetchUserByEmail(session.user.email);
-  const hasFirstLogin = Boolean(user?.first_login);
 
-  redirect(hasFirstLogin ? "/" : "/home1");
+  const needsOnboarding =
+    !user?.first_login || !user?.name;
+
+  redirect(needsOnboarding ? "/" : "/welcome-back");
 }

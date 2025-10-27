@@ -14,23 +14,53 @@ const GET_TODAY_MOOD = gql`
     getMoodCalendarByUserId(user_id: $userId, start: $start, end: $end) {
       id
       mood_date
-      mood { id name img_url }
+      mood {
+        id
+        name
+        img_url
+      }
     }
   }
 `;
 
-const EMOTIONS = ["happy", "sad", "angry", "gloomy"] as const;
-type EmotionName = typeof EMOTIONS[number];
+const GET_DEFAULT_MOOD = gql`
+  query GetDefaultMood {
+    getMoodByName(name: "default") {
+      id
+      name
+      img_url
+    }
+  }
+`;
+
+const EMOTIONS = ["happy", "sad", "angry", "gloomy","default"] as const;
+type EmotionName = (typeof EMOTIONS)[number];
 
 // UTC day [start, end)
 function todayUtcRange() {
   const now = new Date();
-  const start = new Date(Date.UTC(
-    now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0
-  ));
-  const end = new Date(Date.UTC(
-    now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1, 0, 0, 0, 0
-  ));
+  const start = new Date(
+    Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate(),
+      0,
+      0,
+      0,
+      0
+    )
+  );
+  const end = new Date(
+    Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate() + 1,
+      0,
+      0,
+      0,
+      0
+    )
+  );
   return { start: start.toISOString(), end: end.toISOString() };
 }
 
@@ -46,28 +76,30 @@ export default function HomePage2() {
   const { start, end } = todayUtcRange();
 
   // query today's mood (skip until we know userId)
-  const { data } = useQuery(
-    GET_TODAY_MOOD,
-    {
-      skip: !session?.userId,
-      variables: {
-        userId: Number(session?.userId),
-        start,
-        end,
-      },
-      fetchPolicy: "cache-and-network",
-    }
-  );
+  const { data: todayData } = useQuery(GET_TODAY_MOOD, {
+    skip: !session?.userId,
+    variables: {
+      userId: Number(session?.userId),
+      start,
+      end,
+    },
+    fetchPolicy: "cache-and-network",
+  });
 
-  // pick the first record today 
+  const { data: defaultData } = useQuery(GET_DEFAULT_MOOD, {
+    fetchPolicy: "cache-first",
+  });
+
+  // pick the first record today
   const moodNameRaw: string | undefined =
-    data?.getMoodCalendarByUserId?.[0]?.mood?.name;
+    todayData?.getMoodCalendarByUserId?.[0]?.mood?.name;
 
-  // narrow to our union type if it matches, else undefined 
-  const todaysEmotion: EmotionName | undefined =
-    EMOTIONS.includes(moodNameRaw as EmotionName)
-      ? (moodNameRaw as EmotionName)
-      : undefined;
+  const fallbackName: string | undefined = defaultData?.getMoodByName?.name;
+  const finalName: string | undefined = moodNameRaw ?? fallbackName;
+
+  const todaysEmotion: EmotionName = EMOTIONS.includes(finalName as EmotionName)
+    ? (finalName as EmotionName)
+    : "default";
 
   return (
     <motion.main
@@ -86,7 +118,7 @@ export default function HomePage2() {
       </div>
       <div className="flex-1 flex justify-center items-center">
         {/* Show today's mood if present; otherwise render nothing */}
-        {todaysEmotion && <EmotionDisplayComponent emotion={todaysEmotion} />}
+        <EmotionDisplayComponent emotion={todaysEmotion} />
       </div>
     </motion.main>
   );

@@ -17,7 +17,7 @@ const GET_MOOD_BY_NAME = gql`
 `;
 
 interface EmotionDisplayProps {
-  emotion: "happy" | "sad" | "angry" | "gloomy";
+  emotion: "happy" | "sad" | "angry" | "gloomy" | "default";
   showText?: boolean;
 }
 
@@ -46,6 +46,11 @@ const emotionText: Record<
     default:
       "วันนี้คุณดูเหมือนท้องฟ้ายามที่เมฆอึมครึม ดูเหมือนว่าคุณจะรู้สึกเบื่อหน่ายที่ลงมือทำอะไรซ้ำ ๆ เดิม ๆ อยู่รึเปล่าลองลงมือทำในสิ่งใหม่ ๆ ดูสิ\nคุณอาจพบความสามารถใหม่ของคุณก็ได้นะ :3",
   },
+  default: {
+    sm: "สวัสดีวันใหม่ :)\nวันนี้คุณยังไม่ได้เลือกอารมณ์\nลองบันทึกความรู้สึกของในปฏิทินดูดีไหม",
+    default:
+      "สวัสดีวันใหม่ :)\nวันนี้คุณยังไม่ได้เลือกอารมณ์ ลองบันทึกความรู้สึกของในปฏิทินดูดีไหม",
+  },
 };
 
 const fallbackEmotionImage: Record<EmotionDisplayProps["emotion"], string> = {
@@ -53,8 +58,8 @@ const fallbackEmotionImage: Record<EmotionDisplayProps["emotion"], string> = {
   sad: "/images/emotion3.png",
   angry: "/images/emotion4.png",
   gloomy: "/images/emotion1.png",
+  default: "/images/cloud-default.png",
 };
-
 
 export default function EmotionDisplayComponent({
   emotion,
@@ -66,10 +71,10 @@ export default function EmotionDisplayComponent({
   // Fetch mood by (case-insensitive) name
   const { data, loading, error } = useQuery(GET_MOOD_BY_NAME, {
     variables: { name: emotion.toLowerCase() },
-    fetchPolicy: 'cache-first',          // default, but explicit
-    nextFetchPolicy: 'cache-first',      // keep using cache on variable changes
-    returnPartialData: true,             // render if something is in cache
-    notifyOnNetworkStatusChange: true,   // loading states update on refetch
+    fetchPolicy: "cache-first", // default, but explicit
+    nextFetchPolicy: "cache-first", // keep using cache on variable changes
+    returnPartialData: true, // render if something is in cache
+    notifyOnNetworkStatusChange: true, // loading states update on refetch
   });
   if (loading) return <p></p>;
   // Choose text variant
@@ -89,9 +94,9 @@ export default function EmotionDisplayComponent({
   const dbImgUrl: string | undefined = data?.getMoodByName?.img_url;
 
   const resolvedSrc = dbImgUrl
-    ? (dbImgUrl.startsWith("/")
+    ? dbImgUrl.startsWith("/")
       ? `${apiBase}${dbImgUrl}`
-      : dbImgUrl)
+      : dbImgUrl
     : fallbackEmotionImage[emotion];
 
   return (

@@ -1,4 +1,3 @@
-// src/app/page.tsx
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
@@ -7,20 +6,23 @@ import { PlayCircleIcon } from "@heroicons/react/24/solid";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 
-export default function Home() {
+export default function StartPage() {
   const router = useRouter();
   const { data: session, status } = useSession();
   const [isLeaving, setIsLeaving] = useState(false);
 
   useEffect(() => {
     if (status === "loading") return;
-    if (status === "unauthenticated") return;
+
+    if (status === "unauthenticated") {
+      router.replace("/login");
+      return;
+    }
 
     const firstLogin = (session as any)?.first_login;
-    if (!firstLogin) {
-      router.replace("/intro");
-    } else {
-      router.replace("/home1");
+    const hasName = Boolean((session as any)?.user?.name); // เผื่อ next-auth เติม name มา
+    if (firstLogin && hasName) {
+      router.replace("/welcome-back");
     }
   }, [status, session, router]);
 
@@ -28,7 +30,7 @@ export default function Home() {
     setIsLeaving(true);
     setTimeout(() => {
       router.push("/intro");
-    }, 500);
+    }, 300);
   };
 
   return (
@@ -38,7 +40,7 @@ export default function Home() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.8 }}
+          transition={{ duration: 0.6 }}
           className="relative flex min-h-screen flex-col items-center justify-center p-4 sm:p-8 md:p-16 lg:p-24 bg-center"
           style={{ backgroundImage: "url('/images/bg-path-1.png')" }}
         >
@@ -49,7 +51,7 @@ export default function Home() {
               <span style={{ color: "#88C7EE" }}>You</span>
             </p>
 
-            <button onClick={handleClick}>
+            <button onClick={handleClick} aria-label="ไปต่อ (Intro)">
               <PlayCircleIcon
                 style={{
                   color: "#72C052",
