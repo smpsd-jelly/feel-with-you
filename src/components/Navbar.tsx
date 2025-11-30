@@ -17,7 +17,7 @@ export default function Navbar({ activePage }: NavbarProps) {
     { id: 4, label: 'Note', href: '/note' },
     { id: 5, label: 'Jigsaw', href: '/jigsaw' },
     { id: 6, label: 'About us', href: '/about-us' },
-    // { id: 7, label: 'About us', href: '/about-us' },
+    { id: 7, label: 'feelcatche', href: '/music' },
   ];
 
   const handleLogout = () => {

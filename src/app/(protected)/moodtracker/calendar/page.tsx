@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import { gql, useMutation, useQuery } from "@apollo/client";
 import { useSession } from "next-auth/react";
 import { resolveImgSrc } from "@/utils/resolveImg";
-import { CreateResp, CreateVars, MoodData } from "@/Interface/MoodCalendarInterface";
+import { CreateResp, CreateVars } from "@/Interface/MoodCalendarInterface";
 import { useRouter } from "next/navigation";
 
 const GET_MOOD_CALENDAR_BY_USER = gql`
@@ -33,7 +33,6 @@ const GET_MOOD_BY_NAME = gql`
   }
 `;
 
-// mutation insert/update mood_calendar
 const CREATE_MOOD_CALENDAR = gql`
   mutation createMoodCalendarByDay($input: CreateMoodCalendarByDayInput!) {
     createMoodCalendarByDay(input: $input) {
@@ -52,46 +51,15 @@ const CREATE_MOOD_CALENDAR = gql`
   }
 `;
 
-const ASSET_BASE = process.env.NEXT_PUBLIC_ASSET_BASE ?? "";
+function monthRangeLocalISO(d = new Date()) {
+  const startLocal = new Date(d.getFullYear(), d.getMonth(), 1, 0, 0, 0, 0);
+  const endLocal = new Date(d.getFullYear(), d.getMonth() + 1, 1, 0, 0, 0, 0);
 
-// Helper: UTC month range [start, end)
-function monthUtcRange(d = new Date()) {
-  const start = new Date(
-    Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1, 0, 0, 0, 0)
-  );
-  const end = new Date(
-    Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1, 0, 0, 0, 0)
-  );
-  return { start: start.toISOString(), end: end.toISOString() };
+  return {
+    start: startLocal.toISOString(),
+    end: endLocal.toISOString(),
+  };
 }
-
-const days = [
-  "SUNDAY",
-  "MONDAY",
-  "TUESDAY",
-  "WEDNESDAY",
-  "THURSDAY",
-  "FRIDAY",
-  "SATURDAY",
-];
-type MoodKey = "happy" | "sad" | "angry" | "gloomy";
-
-const MOOD_META: Array<{
-  key: MoodKey;
-  th: string;
-  en: string;
-  fallback: string;
-}> = [
-    { key: "happy", th: "สดใส", en: "Happy", fallback: "/images/emotion2.png" },
-    { key: "sad", th: "เศร้า", en: "Sad", fallback: "/images/emotion3.png" },
-    { key: "angry", th: "โกรธ", en: "Angry", fallback: "/images/emotion4.png" },
-    {
-      key: "gloomy",
-      th: "หม่นหมอง",
-      en: "Gloomy",
-      fallback: "/images/emotion1.png",
-    },
-  ];
 
 function todayLocalRangeISO() {
   const now = new Date();
@@ -115,23 +83,58 @@ function todayLocalRangeISO() {
     0
   );
 
-  const startISO = new Date(
-    localStart.getTime() - localStart.getTimezoneOffset() * 60000
-  ).toISOString();
-  const endISO = new Date(
-    localEnd.getTime() - localEnd.getTimezoneOffset() * 60000
-  ).toISOString();
+  const startISO = localStart.toISOString();
+  const endISO = localEnd.toISOString();
 
   return { start: startISO, end: endISO, localStartISO: startISO };
 }
 
+const days = [
+  "SUNDAY",
+  "MONDAY",
+  "TUESDAY",
+  "WEDNESDAY",
+  "THURSDAY",
+  "FRIDAY",
+  "SATURDAY",
+];
+
+type MoodKey = "happy" | "sad" | "angry" | "gloomy";
+
+const MOOD_META: Array<{
+  key: MoodKey;
+  th: string;
+  en: string;
+  fallback: string;
+}> = [
+  { key: "happy", th: "สดใส", en: "Happy", fallback: "/images/emotion2.png" },
+  { key: "sad", th: "เศร้า", en: "Sad", fallback: "/images/emotion3.png" },
+  { key: "angry", th: "โกรธ", en: "Angry", fallback: "/images/emotion4.png" },
+  {
+    key: "gloomy",
+    th: "หม่นหมอง",
+    en: "Gloomy",
+    fallback: "/images/emotion1.png",
+  },
+];
 
 export default function MoodCalendarPage() {
   const { data: session } = useSession();
+  const router = useRouter();
+
+  const userIdNum = useMemo(() => {
+    const raw =
+      (session as any)?.userId ?? (session as any)?.user?.userId ?? null;
+    const n = raw != null ? Number(raw) : 0;
+    const safe = Number.isNaN(n) ? 0 : n;
+    console.log("Calendar userIdNum =", safe);
+    return safe;
+  }, [session]);
+
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerDay, setPickerDay] = useState<number | null>(null);
   const [selectedMood, setSelectedMood] = useState<MoodKey | null>(null);
-  const router = useRouter();
+
   const { data: happyQ } = useQuery(GET_MOOD_BY_NAME, {
     variables: { name: "happy" },
   });
@@ -163,9 +166,6 @@ export default function MoodCalendarPage() {
     [happyQ, sadQ, angryQ, gloomyQ]
   );
 
-
-  // Buiding Id map of mood after called from query getMoodByName 
-  // Build an ID map
   const moodIdMap = useMemo<Record<MoodKey, number | undefined>>(
     () => ({
       happy: happyQ?.getMoodByName?.id,
@@ -176,21 +176,20 @@ export default function MoodCalendarPage() {
     [happyQ, sadQ, angryQ, gloomyQ]
   );
 
-
-  // Local month info (for header and grid)
   const today = new Date();
   const currentYear = today.getFullYear();
-  const currentMonth = today.getMonth(); // 0..11
+  const currentMonth = today.getMonth();
   const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
   const startDay = firstDayOfMonth.getDay();
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-
-  // Build month range in UTC for the query
-  const { start, end } = useMemo(() => monthUtcRange(today), [today]);
-  // compute today's UTC [start, end) once
-  const { localStartISO } = useMemo(() => todayLocalRangeISO(), []);
-
   const todayDate = today.getDate();
+
+  // ช่วงเดือนนี้แบบ local → ISO
+  const { start, end } = useMemo(() => monthRangeLocalISO(today), [today]);
+  console.log("Calendar range start/end =", start, end);
+
+  // ช่วงของ "วันนี้" ไว้ใช้ตอน save mood_date
+  const { localStartISO } = useMemo(() => todayLocalRangeISO(), []);
 
   const openPickerIfToday = (day: number) => {
     if (day !== todayDate) return;
@@ -200,7 +199,6 @@ export default function MoodCalendarPage() {
   };
   const closePicker = () => setPickerOpen(false);
 
-  // Query calendar rows for this user and month
   type CalendarItem = {
     id: number;
     mood_date: string;
@@ -209,23 +207,22 @@ export default function MoodCalendarPage() {
   type CalendarResp = { getMoodCalendarByUserId: CalendarItem[] };
   type CalendarVars = { userId: number; start: string; end: string };
 
+  const shouldQuery = userIdNum > 0;
+
   const { data, loading, error } = useQuery<CalendarResp, CalendarVars>(
     GET_MOOD_CALENDAR_BY_USER,
     {
-      skip: !session?.userId,
-      variables: { userId: Number(session?.userId), start, end },
-      fetchPolicy: "cache-and-network",
+      skip: !shouldQuery,
+      variables: shouldQuery ? { userId: userIdNum, start, end } : undefined,
+      fetchPolicy: "network-only",
     }
   );
 
-
-  // Mutation to update today's mood
   const [createMoodCalendar, { loading: saveLoading }] = useMutation<
     CreateResp,
     CreateVars
   >(CREATE_MOOD_CALENDAR, {
     onError: (e) => {
-      // surface GraphQL & network errors cleanly
       console.group("createMoodCalendar error");
       console.log("message:", e.message);
       if ("graphQLErrors" in e && e.graphQLErrors?.length) {
@@ -238,8 +235,15 @@ export default function MoodCalendarPage() {
       }
       console.groupEnd();
     },
+    refetchQueries: shouldQuery
+      ? [
+          {
+            query: GET_MOOD_CALENDAR_BY_USER,
+            variables: { userId: userIdNum, start, end },
+          },
+        ]
+      : [],
   });
-
 
   const handleSaveMood = async () => {
     if (!selectedMood) return;
@@ -247,19 +251,11 @@ export default function MoodCalendarPage() {
     const moodId = moodIdMap[selectedMood];
     if (!moodId) return;
 
-    // ensure we have a numeric user_id if backend expects Int
-    if (!session?.userId) {
-      console.error("No user id in session");
+    if (!userIdNum) {
+      console.error("No user id");
       return;
     }
 
-    const userIdNum = Number(session.userId);
-    if (Number.isNaN(userIdNum)) {
-      console.error("Session userId is not a number");
-      return;
-    }
-
-    // Use today UTC midnight as the canonical date
     const todayIso = localStartISO;
 
     try {
@@ -272,49 +268,53 @@ export default function MoodCalendarPage() {
           },
         },
       });
-      router.push("/moodtracker/calendar");
+      closePicker();
     } catch (err) {
       console.error("Error saving mood:", err);
     }
-    closePicker();
   };
+
   const isDisabled = !selectedMood || saveLoading;
-  const btnTitle =
-    !selectedMood
-      ? "กรุณาเลือกอารมณ์ก่อน"
-      : saveLoading
-        ? "กำลังบันทึก..."
-        : "";
+  const btnTitle = !selectedMood
+    ? "กรุณาเลือกอารมณ์ก่อน"
+    : saveLoading
+    ? "กำลังบันทึก..."
+    : "";
 
-
-  // dayNumber (1..31) -> image url
+  // ------ สร้าง map: dayNumber → image url ------
   const emotionsByDay = useMemo<Record<number, string>>(() => {
     const map: Record<number, string> = {};
-    if (!data?.getMoodCalendarByUserId) return map;
+    const rows = data?.getMoodCalendarByUserId ?? [];
 
-    for (const rec of data.getMoodCalendarByUserId) {
+    console.log("CAL rows:", rows);
+
+    for (const rec of rows) {
       const d = new Date(rec.mood_date);
-      const dayNum = d.getDate(); // local day
-      const src = resolveImgSrc(rec.mood?.img_url);
-      if (src) map[dayNum] = src;
+      const dayNum = d.getDate(); // local day 1..31
+      const raw = rec.mood?.img_url;
+      const resolved = resolveImgSrc(raw);
+      const src = resolved || raw;
+      if (src) {
+        map[dayNum] = src;
+      }
     }
+
+    console.log("emotionsByDay:", map);
     return map;
   }, [data]);
 
   const calendarCells = useMemo(() => {
     const cells: JSX.Element[] = [];
 
-    // leading blanks before day 1
     for (let i = 0; i < startDay; i++) {
       cells.push(
         <div
           key={`empty-${i}`}
-          className="h-[4rem] sm:h-[6rem] md:h-[7rem] lg:h-[8rem] border border-red-200 bg-white"
+          className="h-[5rem] sm:h-[6rem] md:h-[7rem] lg:h-[8rem] border border-red-200 bg-white"
         />
       );
     }
 
-    // month days
     for (let day = 1; day <= daysInMonth; day++) {
       const img = emotionsByDay[day];
       const isToday = day === todayDate;
@@ -325,10 +325,10 @@ export default function MoodCalendarPage() {
           key={`day-${day}`}
           onClick={() => openPickerIfToday(day)}
           className={[
-            "h-[4rem] sm:h-[6rem] md:h-[7rem] lg:h-[8rem] border border-red-200 bg-white flex flex-col items-center justify-start pt-1 transition outline-none",
+            "h-[5rem] sm:h-[6rem] md:h-[7rem] lg:h-[8rem] border border-red-200 bg-white flex flex-col items-center justify-between py-1 transition outline-none",
             isToday
               ? "hover:bg-rose-50 focus:ring-2 focus:ring-rose-300"
-              : "opacity-70", // ← แค่จางลงนิดหน่อย
+              : "opacity-70",
           ].join(" ")}
         >
           <div className="text-[10px] sm:text-xs font-semibold text-gray-700">
@@ -352,8 +352,20 @@ export default function MoodCalendarPage() {
       );
     }
 
+    const totalFilled = startDay + daysInMonth;
+    const trailingBlanks = (7 - (totalFilled % 7)) % 7;
+
+    for (let i = 0; i < trailingBlanks; i++) {
+      cells.push(
+        <div
+          key={`tail-empty-${i}`}
+          className="h-[5rem] sm:h-[6rem] md:h-[7rem] lg:h-[8rem] border border-red-200 bg-white"
+        />
+      );
+    }
+
     return cells;
-  }, [startDay, daysInMonth, emotionsByDay]);
+  }, [startDay, daysInMonth, emotionsByDay, todayDate]);
 
   const monthName = new Intl.DateTimeFormat("en-US", { month: "long" }).format(
     today
@@ -389,7 +401,6 @@ export default function MoodCalendarPage() {
           </div>
         </div>
 
-        {/* Loading / error states (optional) */}
         {loading && (
           <div className="mt-3 text-sm text-gray-500">Loading calendar…</div>
         )}

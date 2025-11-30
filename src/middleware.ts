@@ -16,7 +16,7 @@ export async function middleware(req: NextRequest) {
   if (
     pathname.startsWith("/_next") ||
     pathname.startsWith("/images") ||
-    pathname === "/favicon.ico"
+    pathname === "/favicon-v2.ico"
   ) {
     return NextResponse.next();
   }
@@ -40,5 +40,5 @@ export async function middleware(req: NextRequest) {
 
 // จำกัด matcher ให้ครอบคลุมทุกอย่างที่ไม่ใช่ไฟล์ asset
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|images|api/auth).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon-v2.ico|images|api/auth).*)"],
 };

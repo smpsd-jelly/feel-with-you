@@ -33,7 +33,7 @@ const GET_DEFAULT_MOOD = gql`
   }
 `;
 
-const EMOTIONS = ["happy", "sad", "angry", "gloomy","default"] as const;
+const EMOTIONS = ["happy", "sad", "angry", "gloomy", "default"] as const;
 type EmotionName = (typeof EMOTIONS)[number];
 
 // UTC day [start, end)
@@ -112,8 +112,9 @@ export default function HomePage2() {
       <Navbar activePage={1} />
       <div className="flex justify-end px-4 mt-4">
         <MusicCardComponent
+          src="/audio/your-cloud.m4a"
+          title="ก้อนเมฆของคุณ"
           onClick={handleToMusicPage}
-          videoIds={["YSLalbZqcqQ", "g4z9nmztAp4", "nVUzvmSb6Rs"]}
         />
       </div>
       <div className="flex-1 flex justify-center items-center">
