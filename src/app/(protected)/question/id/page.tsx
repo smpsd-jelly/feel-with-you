@@ -81,79 +81,83 @@ export default function QuestionIntroPage() {
 
         <div className="flex-1 flex flex-col justify-center items-center">
           <motion.h2
-            className="text-lg md:text-xl lg:text-2xl font-bold text-center"
+            className="text-4xl sm:text-5xl md:text-5xl lg:text-6xl font-bold text-center pt-7 text-[#474747]"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 2 }}
           >
-            แบบสอบถาม 20 ข้อ
+            ประเมินอารมณ์ประจำวัน<br></br>ของคุณ
           </motion.h2>
 
-          <div className="bg-white opacity-80 rounded-xl [box-shadow:0_0_10px_0_rgba(0,0,0,0.25)] p-10 w-[70vw] h-[70vh] mt-6">
+          <div className="bg-white/50 rounded-xl border border-gray-200 
+            w-[90vw] md:w-[70vw] 
+            h-auto md:h-[50vh] 
+            mt-6 p-6 md:p-10 flex flex-col">
             {/* Index / total */}
-            <div className="text-sm md:text-base text-center text-black">
+            <div className="text-sm md:text-base text-center text-black mb-3 md:mb-4">
               {loading && "กำลังโหลดคำถาม..."}
               {error && <span className="text-red-600">โหลดไม่สำเร็จ</span>}
               {!loading && !error && total > 0 && (
-                <span>
+                <span className="px-4 md:px-6 py-1 rounded-xl bg-yellow-100 text-yellow-800 text-base md:text-xl shadow-sm">
                   คำถามที่ <b>{currentIndex + 1}</b> / {total}
                 </span>
               )}
             </div>
 
-            {/* Question text */}
-            <div className="text-xl text-center mt-4 text-black">
-              {!loading && !error && current?.question_detail}
-            </div>
+            <div className="flex flex-col justify-center items-center text-black flex-1">
+              {/* Question text */}
+              <div className="text-lg sm:text-2xl md:text-3xl text-center mt-2 mb-4 md:mb-6 px-4">
+                {!loading && !error && current?.question_detail}
+              </div>
 
-            {/* Answers */}
-            <div className="flex flex-wrap md:flex-nowrap justify-center gap-6 md:gap-10 mt-6 mb-4">
-              <div className="flex flex-col items-center w-[120px] sm:w-[140px]">
-                <img
-                  className="w-[100px]"
-                  src="/images/emotion1.png"
-                  alt="ไม่เลย"
-                />
-                <button className="bg-[#72C052] hover:bg-[#62a747] font-medium py-2 px-4 text-sm sm:text-base text-white rounded-xl shadow-md transition text-center w-full mt-2">
-                  ไม่เลย
-                </button>
+              {/* Answers */}
+              <div className="flex justify-center gap-6 sm:gap-6 md:gap-10 mt-6 mb-4">
+                {/* ไม่เลย */}
+                <div className="flex flex-col items-center">
+                  <button
+                    className="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28
+                 flex items-center justify-center
+                 bg-[#72C052] hover:bg-[#62a747]
+                 text-white font-semibold
+                 text-sm sm:text-base
+                 rounded-full shadow-md transition"
+                  >
+                    ไม่เลย
+                  </button>
+                </div>
+
+                {/* ไม่แน่ใจ */}
+                <div className="flex flex-col items-center">
+                  <button
+                    className="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28
+                 flex items-center justify-center
+                 bg-[#4BB5F9] hover:bg-[#43a3df]
+                 text-white font-semibold
+                 text-sm sm:text-base
+                 rounded-full shadow-md transition"
+                  >
+                    ไม่แน่ใจ
+                  </button>
+                </div>
+
+                {/* มากที่สุด */}
+                <div className="flex flex-col items-center">
+                  <button
+                    className="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28
+                 flex items-center justify-center
+                 bg-[#FF8DD8] hover:bg-[#e47ec0]
+                 text-white font-semibold
+                 text-sm sm:text-base
+                 rounded-full shadow-md transition"
+                  >
+                    มากที่สุด
+                  </button>
+                </div>
               </div>
-              <div className="flex flex-col items-center w-[120px] sm:w-[140px]">
-                <img
-                  className="w-[100px]"
-                  src="/images/emotion1.png"
-                  alt="ไม่แน่ใจ"
-                />
-                <button className="bg-[#4BB5F9] hover:bg-[#43a3df] font-medium py-2 px-4 text-sm sm:text-base text-white rounded-xl shadow-md transition text-center w-full mt-2">
-                  ไม่แน่ใจ
-                </button>
-              </div>
-              <div className="flex flex-col items-center w-[120px] sm:w-[140px]">
-                <img
-                  className="w-[100px]"
-                  src="/images/emotion1.png"
-                  alt="มากที่สุด"
-                />
-                <button className="bg-[#FF8DD8] hover:bg-[#e47ec0] font-medium py-2 px-4 text-sm sm:text-base text-white rounded-xl shadow-md transition text-center w-full mt-2">
-                  มากที่สุด
-                </button>
-              </div>
+
             </div>
-            {/* <div className="flex flex-col items-center w-full mt-10">
-              <label
-                htmlFor="message"
-                className="block mb-2 text-sm font-medium text-gray-900"
-              >
-                อยากบอกเหตุผลกับเราไหม ?
-              </label>
-              <textarea
-                id="message"
-                rows={4}
-                className="block p-3 w-full max-w-3xl text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-400 focus:border-blue-400 resize-none"
-                placeholder="คุณอยากแชร์อะไรเพิ่มเติมไหม..."
-              ></textarea>
-            </div> */}
           </div>
+
         </div>
       </motion.main>
     </>

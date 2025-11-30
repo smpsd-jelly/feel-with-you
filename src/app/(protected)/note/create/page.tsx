@@ -83,7 +83,7 @@ export default function CreateNotePage() {
       className="min-h-screen bg-center bg-cover bg-no-repeat flex flex-col"
       style={{ backgroundImage: "url('/images/bg-note-create.png')" }}
     >
-      <Navbar activePage={2} />
+      <Navbar activePage={4} />
 
       <div className="flex-1 flex flex-col items-center px-4 py-10">
         <div className="w-full max-w-5xl bg-white/95 rounded-2xl p-6 md:p-10 shadow-[0_0_10px_rgba(0,0,0,0.1)]">

@@ -113,7 +113,7 @@ export default function HomePage2() {
       <div className="flex justify-end px-4 mt-4">
         <MusicCardComponent
           onClick={handleToMusicPage}
-          videoIds={["vUujpXp51Cc", "AnP2csy1Oak", "nVUzvmSb6Rs"]}
+          videoIds={["YSLalbZqcqQ", "g4z9nmztAp4", "nVUzvmSb6Rs"]}
         />
       </div>
       <div className="flex-1 flex justify-center items-center">

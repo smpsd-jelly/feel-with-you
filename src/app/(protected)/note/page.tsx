@@ -31,7 +31,7 @@ export default function NotePage() {
       <Navbar activePage={4} />
       <div className="flex-1 flex justify-center items-center">
         <motion.h3
-          className="text-base md:text-xl lg:text-2xl"
+          className="text-2xl md:text-3xl lg:text-4xl p-5 text-center"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 2 }}
