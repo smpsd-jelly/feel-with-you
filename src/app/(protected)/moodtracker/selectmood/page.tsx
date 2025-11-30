@@ -10,6 +10,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useMutation, gql, DocumentNode } from "@apollo/client";
 import { useSession } from "next-auth/react";
+import { CreateResp, CreateVars, MoodData } from "@/Interface/MoodCalendarInterface";
 
 // function called back-end graphql to show the emotion
 const GET_MOOD_BY_NAME = gql`
@@ -53,24 +54,11 @@ const CREATE_MOOD_CALENDAR = gql`
 
 type EmotionName = "happy" | "sad" | "angry" | "gloomy";
 
-interface MoodData {
-  getMoodByName: { id: number; name: string; img_url: string };
-}
 interface MoodVars {
   name: string;
 }
 
-interface CreateResp {
-  createMoodCalendarByDay: {
-    id: number;
-    mood_date: string;
-    mood: { id: number; name: string; img_url: string };
-    user: { id: number; email: string };
-  };
-}
-interface CreateVars {
-  input: { user_id: number; mood_id: number; mood_date?: string };
-}
+
 
 function todayLocalRangeISO() {
   const now = new Date();

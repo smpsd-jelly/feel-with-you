@@ -48,7 +48,7 @@ export default function MoodTracker() {
           {/* Step 1: ด้านบน */}
           {step >= 1 && (
             <motion.h2
-              className="text-base md:text-xl lg:text-2xl font-bold"
+              className="text-3xl md:text-4xl lg:text-4xl font-bold p-5"
               initial={{ opacity: 0, y: -50 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 1 }}

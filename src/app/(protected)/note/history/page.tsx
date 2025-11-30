@@ -19,7 +19,7 @@ const MOCK_NOTES: NoteItem[] = [
     note:
       "วันนี้อากาศดี เลยออกไปเดินเล่นรับลมหน่อย รู้สึกเบาสบายขึ้นเยอะเลย :)\n" +
       "ตั้งใจว่าจะลองทำของอร่อย ๆ ให้ตัวเองเป็นรางวัลด้วย",
-    images: ["/images/sample1.jpg", "/images/sample2.jpg"],
+    images: ["/images/sample1.jpeg", "/images/sample2.jpeg"],
   },
   {
     id: 2,
@@ -35,29 +35,36 @@ const MOCK_NOTES: NoteItem[] = [
     note:
       "ลองฟังเพลงเพลิน ๆ ตอนเช้า รู้สึกว่าทั้งวันสดใสขึ้นมากเลย\n" +
       "อยากให้ทุกวันเริ่มต้นแบบนี้จัง",
-    images: ["/images/sample3.jpg"],
+    images: ["/images/sample3.png"],
   },
 ];
 
 export default function NoteHistoryPage() {
   const [viewDate, setViewDate] = useState(new Date());
   const [showScrollTop, setShowScrollTop] = useState(false);
-
-  const monthLabel = new Intl.DateTimeFormat("th-TH", {
-    month: "long",
-    year: "numeric",
-  }).format(viewDate);
+  const today = new Date();
+  // helpers
+  const startOfMonth = (d: Date) => new Date(d.getFullYear(), d.getMonth(), 1);
+  const isSameMonth = (a: Date, b: Date) =>
+    a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth();
 
   const goPrevMonth = () => {
-    const d = new Date(viewDate);
+    const d = startOfMonth(viewDate);
     d.setMonth(d.getMonth() - 1);
     setViewDate(d);
   };
+
   const goNextMonth = () => {
-    const d = new Date(viewDate);
-    d.setMonth(d.getMonth() + 1);
-    setViewDate(d);
+    const d = startOfMonth(viewDate);
+    const next = new Date(d.getFullYear(), d.getMonth() + 1, 1);
+    const thisMonth = startOfMonth(today);
+    if (next <= thisMonth) setViewDate(next);
   };
+
+  // Helper function เช็คว่าเดือน ปัจจุบันมั้ย เพื่อ disable ปุ่มเดือนถัดไป
+  const atCurrentMonth = isSameMonth(startOfMonth(viewDate), startOfMonth(today));
+  const monthLabel = new Intl.DateTimeFormat("th-TH", { month: "long", year: "numeric" })
+    .format(viewDate);
 
   // ฟังก์ชันแปะป้ายวันที่ (UI)
   const dayBadge = (iso: string) => {
@@ -91,7 +98,7 @@ export default function NoteHistoryPage() {
       className="min-h-screen bg-center bg-cover bg-no-repeat flex flex-col"
       style={{ backgroundImage: "url('/images/bg-note-create.png')" }}
     >
-      <Navbar activePage={2} />
+      <Navbar activePage={4} />
 
       <div className="flex-1 flex flex-col items-center px-4 py-10">
         <div className="w-full max-w-5xl bg-white/95 rounded-2xl p-6 md:p-10 shadow-[0_0_10px_rgba(0,0,0,0.1)]">
@@ -115,7 +122,14 @@ export default function NoteHistoryPage() {
               </div>
               <button
                 onClick={goNextMonth}
-                className="px-3 py-1.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-50"
+                disabled={atCurrentMonth}
+                aria-disabled={atCurrentMonth}
+                className={[
+                  "px-3 py-1.5 rounded-lg border border-gray-200",
+                  atCurrentMonth
+                    ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                    : "bg-white hover:bg-gray-50"
+                ].join(" ")}
                 aria-label="เดือนถัดไป"
               >
                 →
