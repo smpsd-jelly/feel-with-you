@@ -5,7 +5,7 @@ import { getToken } from "next-auth/jwt";
 
 const PUBLIC_PATHS = [
   "/login",
-  "/jigsawtest",     
+  "/home-test",     
   "/after-login",
 ];
 
@@ -38,7 +38,6 @@ export async function middleware(req: NextRequest) {
   return NextResponse.next();
 }
 
-// จำกัด matcher ให้ครอบคลุมทุกอย่างที่ไม่ใช่ไฟล์ asset
 export const config = {
   matcher: ["/((?!_next/static|_next/image|favicon-v2.ico|images|api/auth).*)"],
 };

@@ -1,20 +1,21 @@
 "use client";
 
 import { useEffect, useRef, useState, MouseEvent, ChangeEvent } from "react";
-import { FaMusic } from "react-icons/fa";
+import { FaMusic, FaPause, FaPlay } from "react-icons/fa";
+import { IoVolumeHigh, IoVolumeMute } from "react-icons/io5";
 
 interface MusicCardProps {
   src?: string;
   title?: string;
   onClick?: () => void;
-  autoPlay?: boolean; // เพิ่ม autoplay option
+  autoPlay?: boolean;
 }
 
 export default function MusicCardComponent({
   src = "/audio/your-cloud.m4a",
   title = "ก้อนเมฆของคุณ",
   onClick,
-  autoPlay = true, // ให้พยายาม autoplay
+  autoPlay = true,
 }: MusicCardProps) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -161,7 +162,7 @@ export default function MusicCardComponent({
             className="text-black text-sm px-2 py-1 rounded hover:bg-black/10"
             aria-label={isMuted ? "Unmute" : "Mute"}
           >
-            {isMuted ? "🔇" : "🔊"}
+            {isMuted ? <IoVolumeMute /> : <IoVolumeHigh />}
           </button>
           <input
             type="range"
@@ -184,15 +185,15 @@ export default function MusicCardComponent({
           type="button"
           onClick={togglePlay}
           className="
-            shrink-0 bg-black text-white
-            rounded-full w-8 h-8
-            flex items-center justify-center
-            hover:bg-gray-800
-            text-xs
-          "
+        shrink-0 bg-black text-white
+        rounded-full w-8 h-8
+        flex items-center justify-center
+        hover:bg-gray-800
+        text-sm
+      "
           aria-label={isPlaying ? "Pause" : "Play"}
         >
-          {isPlaying ? "⏸" : "▶"}
+          {isPlaying ? <FaPause /> : <FaPlay />}
         </button>
 
         <span className="text-[11px] text-gray-700 w-9 text-right">
@@ -209,9 +210,7 @@ export default function MusicCardComponent({
           className="flex-1 accent-black"
         />
 
-        <span className="text-[11px] text-gray-700 w-9">
-          {fmt(duration)}
-        </span>
+        <span className="text-[11px] text-gray-700 w-9">{fmt(duration)}</span>
       </div>
 
       {/* error ถ้ามี */}

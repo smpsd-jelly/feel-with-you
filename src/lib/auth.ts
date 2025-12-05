@@ -7,20 +7,24 @@ function must(name: string, val?: string) {
 }
 
 const env = {
-  GRAPHQL_URL: () => must("GRAPHQL_URL", process.env.GRAPHQL_URL),
-  GOOGLE_CLIENT_ID: () => must("GOOGLE_CLIENT_ID", process.env.GOOGLE_CLIENT_ID),
-  GOOGLE_CLIENT_SECRET: () => must("GOOGLE_CLIENT_SECRET", process.env.GOOGLE_CLIENT_SECRET),
+  NEXT_PUBLIC_API_URL: () => must("NEXT_PUBLIC_API_URL", process.env.NEXT_PUBLIC_API_URL),
+  GOOGLE_CLIENT_ID: () =>
+    must("GOOGLE_CLIENT_ID", process.env.GOOGLE_CLIENT_ID),
+  GOOGLE_CLIENT_SECRET: () =>
+    must("GOOGLE_CLIENT_SECRET", process.env.GOOGLE_CLIENT_SECRET),
 };
 
 async function gqlFetch<T>(query: string, variables?: Record<string, any>) {
-  const res = await fetch(env.GRAPHQL_URL(), {
+  const res = await fetch(env.NEXT_PUBLIC_API_URL(), {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ query, variables }),
   });
   const json = await res.json();
   if (!res.ok || json.errors) {
-    throw new Error(`GraphQL error: ${JSON.stringify(json.errors || res.statusText)}`);
+    throw new Error(
+      `GraphQL error: ${JSON.stringify(json.errors || res.statusText)}`
+    );
   }
   return json.data as T;
 }
@@ -49,14 +53,23 @@ export const authOptions: NextAuthOptions = {
       allowDangerousEmailAccountLinking: true,
     }),
   ],
-  session: { strategy: "jwt" },
+  session: {
+    strategy: "jwt",
+    maxAge: 24 * 60 * 60, // 1 วัน 
+  },
+  jwt: {
+    maxAge: 24 * 60 * 60, // 1 วัน
+  },
 
   callbacks: {
     async signIn({ user }) {
       if (!user?.email) return false;
       try {
         // ถ้ามีแล้วก็ผ่าน
-        const found = await gqlFetch<{ getUserByEmail: any }>(GET_USER_BY_EMAIL, { email: user.email });
+        const found = await gqlFetch<{ getUserByEmail: any }>(
+          GET_USER_BY_EMAIL,
+          { email: user.email }
+        );
         if (found?.getUserByEmail) return true;
       } catch {}
       // ไม่มีก็สร้าง
@@ -69,7 +82,10 @@ export const authOptions: NextAuthOptions = {
 
       if (token.email) {
         try {
-          const data = await gqlFetch<{ getUserByEmail: any }>(GET_USER_BY_EMAIL, { email: String(token.email) });
+          const data = await gqlFetch<{ getUserByEmail: any }>(
+            GET_USER_BY_EMAIL,
+            { email: String(token.email) }
+          );
           const u = data?.getUserByEmail;
           if (u) {
             (token as any).userId = u.id;
@@ -91,7 +107,8 @@ export const authOptions: NextAuthOptions = {
 
       // ใส่ name ลงไปใน session.user
       if (session.user) {
-        (session.user as any).name = (token as any).name ?? session.user.name ?? null;
+        (session.user as any).name =
+          (token as any).name ?? session.user.name ?? null;
       }
       return session;
     },
