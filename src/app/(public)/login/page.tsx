@@ -1,20 +1,39 @@
-// src/app/login/page.tsx
 "use client";
 
+import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { FcGoogle } from "react-icons/fc";
-import { signIn } from "next-auth/react";
+import { signIn, useSession } from "next-auth/react";
+import { useRouter, useSearchParams } from "next/navigation";
 
 export default function LoginPage() {
+  const { status } = useSession();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // path ที่อยากกลับไปหลัง login เสร็จ (เช่น มาจาก middleware callbackUrl)
+  const next = searchParams.get("callbackUrl") || "/welcome-back";
+
+  useEffect(() => {
+    if (status === "authenticated") {
+      // ถ้า login เสร็จแล้ว แต่ยังค้างอยู่ที่ /login ให้พาเข้า after-login เลย
+      router.replace(`/after-login?next=${encodeURIComponent(next)}`);
+    }
+  }, [status, router, next]);
+
   const handleGoogleLogin = () => {
-    signIn("google", { callbackUrl: "/" });
+    // ให้ NextAuth redirect กลับมาที่ /after-login เสมอ
+    const afterLoginUrl = `/after-login?next=${encodeURIComponent(next)}`;
+    signIn("google", { callbackUrl: afterLoginUrl });
   };
+
+  const isLoading = status === "loading";
 
   return (
     <motion.main
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      transition={{ duration: 2 }}
+      transition={{ duration: 0.6 }}
       className="min-h-screen bg-center bg-cover bg-no-repeat flex flex-col"
       style={{ backgroundImage: "url('/images/bg-login.png')" }}
     >
@@ -37,10 +56,11 @@ export default function LoginPage() {
 
             <button
               onClick={handleGoogleLogin}
-              className="flex items-center justify-center bg-white border border-gray-300 rounded-full px-6 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 shadow-md transition"
+              disabled={isLoading}
+              className="flex items-center justify-center bg-white border border-gray-300 rounded-full px-6 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 shadow-md transition disabled:opacity-50"
             >
               <FcGoogle className="mr-2 text-xl" />
-              Login with Google
+              {isLoading ? "กำลังตรวจสอบ..." : "Login with Google"}
             </button>
           </div>
         </div>
