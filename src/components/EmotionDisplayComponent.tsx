@@ -116,7 +116,7 @@ export default function EmotionDisplayComponent({
       </motion.div>
 
       {text && showText && (
-        <h3 className="text-base sm:text-base text-center text-[#747474] mt-4 whitespace-pre-line">
+        <h3 className="text-base sm:text-base text-center text-[#747474] mt-4 mb-5 whitespace-pre-line">
           {text}
         </h3>
       )}

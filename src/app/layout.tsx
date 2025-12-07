@@ -1,5 +1,5 @@
 import "./globals.css";
-import { Metadata } from "next";
+import type { Metadata } from "next";
 import { Kanit, Sora } from "next/font/google";
 import Providers from "@/components/Providers";
 
@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   title: "Feel With You",
   description: "Next.js with Tailwind and Google Fonts",
   icons: {
-    icon: "/favicon-v2.ico", 
+    icon: "/favicon-v2.ico",
   },
 };
 
@@ -30,8 +30,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="th" className={`${kanit.variable}`}>
-      <body className="font-sans">
+    <html lang="th" className={kanit.variable}>
+      <body className="font-sora">
         <Providers>{children}</Providers>
       </body>
     </html>
