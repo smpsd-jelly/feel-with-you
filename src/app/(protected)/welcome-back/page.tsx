@@ -1,113 +1,102 @@
+// app/(protected)/welcome-back/page.tsx
 "use client";
 
-import { useEffect, useState, MouseEvent } from "react";
+import EmotionDisplayComponent from "@/components/EmotionDisplayComponent";
+import MusicCardComponent from "@/components/music/MusicCardComponent";
+import { gql, useQuery } from "@apollo/client";
+import { PlayCircleIcon } from "@heroicons/react/16/solid";
+import { motion } from "framer-motion";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo } from "react";
 
-interface MusicYoutubeProps {
-  videoIds: string[];
-  onClick?: () => void;
-}
+const GET_USER_BY_ID = gql`
+  query GetUserById($getUserByIdId: Int!) {
+    getUserById(id: $getUserByIdId) {
+      id
+      name
+    }
+  }
+`;
 
-export default function MusicYoutubeComponent({ videoIds, onClick }: MusicYoutubeProps) {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [videoTitle, setVideoTitle] = useState("");
-  const [channelTitle, setChannelTitle] = useState("");
-  const [isPlaying, setIsPlaying] = useState(false);
+export default function WelcomeBackPage() {
+  const router = useRouter();
+  const { data: session, status } = useSession();
 
-  const currentVideoId = videoIds[currentIndex];
+  const userId = useMemo(
+    () => (session?.userId ? Number(session.userId) : 0),
+    [session?.userId]
+  );
+
+  // เรียก useQuery เสมอ แต่ใช้ skip ตอนยังไม่พร้อม
+  const { data, loading, error } = useQuery(GET_USER_BY_ID, {
+    variables: { getUserByIdId: userId },
+    skip: status !== "authenticated" || !userId,
+  });
+
+  // 1) ยังไม่ได้ login → ไป /login
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.replace("/login");
+    }
+  }, [status, router]);
+
+  // 2) login แล้ว: ถ้ายังไม่ได้ onboard (ไม่มี first_login หรือไม่มี name) → กลับไป "/"
+  const firstLogin = (session as any)?.first_login;
 
   useEffect(() => {
-    const fetchVideoDetails = async () => {
-      try {
-        const res = await fetch(
-          `https://noembed.com/embed?url=https://www.youtube.com/watch?v=${currentVideoId}`
-        );
-        const data = await res.json();
-        setVideoTitle(data.title);
-        setChannelTitle(data.author_name);
-        setIsPlaying(false);
-      } catch (error) {
-        console.error("Failed to fetch video details:", error);
-      }
-    };
+    if (status !== "authenticated") return;
+    if (loading || error) return; // รอ query ให้เสร็จก่อน
+    const hasName = Boolean(data?.getUserById?.name);
+    if (!firstLogin || !hasName) {
+      router.replace("/");
+    }
+  }, [status, loading, error, data, firstLogin, router]);
 
-    if (currentVideoId) fetchVideoDetails();
-  }, [currentVideoId]);
+  // ระหว่างกำลังตรวจสอบ / redirect ให้ไม่ render อะไร
+  if (status === "loading" || status === "unauthenticated") return null;
+  if (loading) return null;
+  if (error) return <p>Error: {error.message}</p>;
 
-  const handlePrev = (e?: MouseEvent) => {
-    e?.stopPropagation();
-    setCurrentIndex(prev => (prev === 0 ? videoIds.length - 1 : prev - 1));
-  };
+  const user = data?.getUserById;
 
-  const handleNext = (e?: MouseEvent) => {
-    e?.stopPropagation();
-    setCurrentIndex(prev => (prev === videoIds.length - 1 ? 0 : prev + 1));
-  };
-
-  const togglePlay = (e?: MouseEvent) => {
-    e?.stopPropagation();
-    setIsPlaying(prev => !prev);
+  const handleClickToHome = () => {
+    setTimeout(() => {
+      router.push("/home");
+    }, 300);
   };
 
   return (
-    <div
-      className={`bg-[#FFF4B8] rounded-xl shadow-md
-                  w-full max-w-[420px] sm:max-w-[520px] md:max-w-[640px]
-                  px-4 sm:px-6 md:px-8
-                  py-2 sm:py-2.5
-                  ${onClick ? "cursor-pointer" : ""}`}
-      onClick={onClick}
-      role={onClick ? "button" : undefined}
-      tabIndex={onClick ? 0 : undefined}
+    <motion.main
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.8 }}
+      className="min-h-screen flex items-center justify-center p-4 bg-center bg-cover bg-no-repeat"
+      style={{ backgroundImage: "url('/images/bg-home.png')" }}
     >
-      <div className="flex items-center gap-3 sm:gap-4">
-        {/* Title + Channel */}
-        <div className="flex-1 min-w-0">
-          <h2 className="text-xs sm:text-sm font-semibold text-black truncate">
-            {videoTitle}
-          </h2>
-          <p className="text-[10px] sm:text-xs text-gray-700 truncate">
-            {channelTitle}
-          </p>
-        </div>
-
-        {/* Controls */}
-        <div className="flex items-center gap-3 text-xs">
-          <button
-            type="button"
-            onClick={handlePrev}
-            className="text-black hover:text-gray-600"
-          >
-            ◀
-          </button>
-
-          <button
-            type="button"
-            onClick={togglePlay}
-            className="bg-black text-white rounded-full w-7 h-7 flex items-center justify-center hover:bg-gray-800"
-            aria-label={isPlaying ? "Pause" : "Play"}
-          >
-            {isPlaying ? "⏸" : "▶"}
-          </button>
-
-          <button
-            type="button"
-            onClick={handleNext}
-            className="text-black hover:text-gray-600"
-          >
-            ▶
+      <div className="absolute top-4 right-4 z-50">
+        <MusicCardComponent
+          src="/audio/your-cloud.m4a"
+          title="ก้อนเมฆของคุณ"
+        />
+      </div>
+      <div className="flex flex-col justify-center items-center">
+        <EmotionDisplayComponent emotion={"happy"} showText={false} />
+        <h3 className="text-xl sm:text-2xl text-center">สวัสดี {user?.name}</h3>
+        <h3 className="text-xl sm:text-2xl text-center">เป็นอย่างไรบ้างนะ ?</h3>
+        <div className="flex justify-center items-center">
+          <button onClick={handleClickToHome} aria-label="ไปหน้า Home">
+            <PlayCircleIcon
+              style={{
+                color: "#FF8DD8",
+                width: "clamp(50px, 4vw, 120px)",
+                height: "clamp(50px, 4vw, 120px)",
+                marginTop: "1rem",
+              }}
+            />
           </button>
         </div>
       </div>
-
-      {/* iframe ซ่อน – เล่นเสียง แต่ไม่กินพื้นที่ความสูง */}
-      {isPlaying && (
-        <iframe
-          className="w-0 h-0 invisible"
-          src={`https://www.youtube.com/embed/${currentVideoId}?autoplay=1&mute=0&controls=1`}
-          title="YouTube audio"
-          allow="autoplay; encrypted-media"
-        />
-      )}
-    </div>
+    </motion.main>
   );
 }

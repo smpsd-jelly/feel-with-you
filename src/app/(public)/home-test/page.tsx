@@ -4,39 +4,11 @@ import EmotionDisplayComponent from "@/components/EmotionDisplayComponent";
 import MusicCardComponent from "@/components/music/MusicCardComponent";
 import Navbar from "@/components/Navbar";
 import { motion } from "framer-motion";
-import { gql, useQuery } from "@apollo/client";
-import { useSession } from "next-auth/react";
 import { FaRegShareSquare } from "react-icons/fa";
 
-// ---- GraphQL: fetch today's mood for this user (joined mood) ----
-const GET_TODAY_MOOD = gql`
-  query GetTodayMood($userId: Int!, $start: String!, $end: String!) {
-    getMoodCalendarByUserId(user_id: $userId, start: $start, end: $end) {
-      id
-      mood_date
-      mood {
-        id
-        name
-        img_url
-      }
-    }
-  }
-`;
-
-const GET_DEFAULT_MOOD = gql`
-  query GetDefaultMood {
-    getMoodByName(name: "default") {
-      id
-      name
-      img_url
-    }
-  }
-`;
-
-const EMOTIONS = ["happy", "sad", "angry", "gloomy", "default"] as const;
-type EmotionName = (typeof EMOTIONS)[number];
-
 type MoodKey = "happy" | "sad" | "angry" | "gloomy";
+
+const TEST_MOOD: MoodKey = "happy";
 
 const IG_STORY_IMAGE: Record<MoodKey, string> = {
   happy: "/images/mood-ig/mood-story-happy.png",
@@ -75,80 +47,10 @@ async function loadImageAsFile(src: string, filename: string): Promise<File> {
   });
 }
 
-// UTC day [start, end)
-function todayUtcRange() {
-  const now = new Date();
-  const start = new Date(
-    Date.UTC(
-      now.getUTCFullYear(),
-      now.getUTCMonth(),
-      now.getUTCDate(),
-      0,
-      0,
-      0,
-      0
-    )
-  );
-  const end = new Date(
-    Date.UTC(
-      now.getUTCFullYear(),
-      now.getUTCMonth(),
-      now.getUTCDate() + 1,
-      0,
-      0,
-      0,
-      0
-    )
-  );
-  return { start: start.toISOString(), end: end.toISOString() };
-}
-
-export default function HomePage2() {
-  const { data: session } = useSession();
-
-  // prepare variables for today's range
-  const { start, end } = todayUtcRange();
-
-  // query today's mood (skip until we know userId)
-  const { data: todayData } = useQuery(GET_TODAY_MOOD, {
-    skip: !session?.userId,
-    variables: {
-      userId: Number(session?.userId),
-      start,
-      end,
-    },
-    fetchPolicy: "cache-and-network",
-  });
-
-  const { data: defaultData } = useQuery(GET_DEFAULT_MOOD, {
-    fetchPolicy: "cache-first",
-  });
-
-  // pick the first record today
-  const moodNameRaw: string | undefined =
-    todayData?.getMoodCalendarByUserId?.[0]?.mood?.name;
-
-  const fallbackName: string | undefined = defaultData?.getMoodByName?.name;
-  const finalName: string | undefined = moodNameRaw ?? fallbackName;
-
-  const todaysEmotion: EmotionName = EMOTIONS.includes(finalName as EmotionName)
-    ? (finalName as EmotionName)
-    : "default";
-
-  // map emotion -> moodKey (เฉพาะ 4 อารมณ์หลัก)
-  const todayMoodKey: MoodKey | null =
-    todaysEmotion === "happy" ||
-    todaysEmotion === "sad" ||
-    todaysEmotion === "angry" ||
-    todaysEmotion === "gloomy"
-      ? (todaysEmotion as MoodKey)
-      : null;
-
+export default function IgStoryTestPage() {
   const shareTodayMoodToIG = async () => {
-    if (!todayMoodKey) return;
-
-    const src = IG_STORY_IMAGE[todayMoodKey];
-    const filename = `mood-story-${todayMoodKey}.png`;
+    const src = IG_STORY_IMAGE[TEST_MOOD];
+    const filename = `mood-story-${TEST_MOOD}.png`;
 
     try {
       const file = await loadImageAsFile(src, filename);
@@ -195,19 +97,17 @@ export default function HomePage2() {
       </div>
 
       <div className="flex-1 flex flex-col justify-center items-center gap-3">
-        {/* Show today's mood if present; otherwise render nothing */}
-        <EmotionDisplayComponent emotion={todaysEmotion} />
+        {/* fix อารมณ์ = happy */}
+        <EmotionDisplayComponent emotion="happy" />
 
-        {todayMoodKey && (
-          <button
-            type="button"
-            onClick={shareTodayMoodToIG}
-            className="mt-1 inline-flex items-center rounded-full bg-[#4BB5F9] hover:bg-[#43a3df] text-white px-4 py-2 text-xs sm:text-sm shadow"
-          >
-            <FaRegShareSquare className="mr-1" />
-            แชร์อารมณ์ของฉันวันนี้ใน IG Story
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={shareTodayMoodToIG}
+          className="mt-1 inline-flex items-center rounded-full bg-[#FFF4B8] hover:bg-[#cac18f] text-[#555555] px-4 py-2 text-xs sm:text-sm shadow"
+        >
+          <FaRegShareSquare className="mr-1" />
+          แชร์อารมณ์ของฉันวันนี้ใน IG Story (TEST)
+        </button>
       </div>
     </motion.main>
   );
