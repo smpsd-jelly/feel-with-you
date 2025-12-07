@@ -1,19 +1,103 @@
+// app/(whatever)/create-note/page.tsx
 "use client";
 
 import { useEffect, useRef, useState } from "react";
 import Navbar from "@/components/Navbar";
 import { motion } from "framer-motion";
+import { gql, useMutation, useQuery } from "@apollo/client";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import Swal from "sweetalert2";
 
 type ImgItem = { file: File; url: string };
 const MAX_IMAGES = 3;
 
+/** ===== GraphQL ===== */
+const CREATE_USER_NOTE = gql`
+  mutation CreateUserNote($input: CreateUserNoteInput!) {
+    createUserNote(input: $input) {
+      id
+      note_date
+      note_text
+      user {
+        id
+        email
+        name
+      }
+    }
+  }
+`;
+
+const CREATE_USER_NOTE_IMAGES = gql`
+  mutation CreateUserNoteImages($user_note_id: Int!, $files: [Upload!]!) {
+    createUserNoteImages(user_note_id: $user_note_id, files: $files) {
+      id
+      img_url
+      note {
+        id
+      }
+    }
+  }
+`;
+
+const GET_TODAY_NOTE = gql`
+  query GetUserNoteByUserAndDate($user_id: Int!, $note_date: String!) {
+    getUserNoteByUserAndDate(user_id: $user_id, note_date: $note_date) {
+      id
+      note_date
+    }
+  }
+`;
+
+function todayDateOnlyString() {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, "0");
+  const d = String(now.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
 export default function CreateNotePage() {
+  const { data: session } = useSession();
+  const router = useRouter();
+
   const [note, setNote] = useState("");
   const [images, setImages] = useState<ImgItem[]>([]);
   const [saving, setSaving] = useState(false);
+  const [confirming, setConfirming] = useState(false); // โหมดพรีวิว (ทับฟอร์ม)
+
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  // cleanup object URLs
+  const [createUserNote] = useMutation(CREATE_USER_NOTE);
+  const [createUserNoteImages] = useMutation(CREATE_USER_NOTE_IMAGES);
+
+  const rawUserId =
+    (session as any)?.userId ?? (session as any)?.user?.userId ?? null;
+  const userIdNum = rawUserId ? Number(rawUserId) : 0;
+  const todayStr = todayDateOnlyString();
+
+  const {
+    data: todayNoteData,
+    loading: todayLoading,
+    error: todayError,
+  } = useQuery(GET_TODAY_NOTE, {
+    skip: !userIdNum,
+    variables: { user_id: userIdNum, note_date: todayStr },
+    fetchPolicy: "network-only",
+  });
+
+  useEffect(() => {
+    if (!userIdNum || todayLoading) return;
+    if (todayNoteData?.getUserNoteByUserAndDate) {
+      Swal.fire({
+        icon: "info",
+        title: "วันนี้คุณบันทึกความรู้สึกไปแล้ว",
+        text: "ไปดูบันทึกของคุณในหน้าบันทึกทั้งหมดได้เลย 💙",
+        confirmButtonText: "ไปหน้าบันทึกทั้งหมด",
+      }).then(() => router.push(`history/${userIdNum}`));
+    }
+  }, [userIdNum, todayLoading, todayNoteData, router]);
+
   useEffect(() => {
     return () => images.forEach((i) => URL.revokeObjectURL(i.url));
   }, [images]);
@@ -53,27 +137,99 @@ export default function CreateNotePage() {
     });
   };
 
+  // คลิกครั้งที่ 1 → เข้าโหมดพรีวิว, ครั้งที่ 2 → บันทึกจริง
+  const handlePrimaryClick = async () => {
+    if (!confirming) {
+      if (!userIdNum) {
+        await Swal.fire({
+          icon: "error",
+          title: "ไม่พบข้อมูลผู้ใช้",
+          text: "กรุณาเข้าสู่ระบบใหม่อีกครั้ง",
+        });
+        return;
+      }
+      if (!note.trim() && images.length === 0) {
+        await Swal.fire({
+          icon: "warning",
+          title: "ยังไม่มีข้อมูล",
+          text: "กรุณาพิมพ์ความในใจ หรือเพิ่มรูปภาพอย่างน้อย 1 รูป",
+        });
+        return;
+      }
+      setConfirming(true);
+      return;
+    }
+    await handleSave();
+  };
+
   const handleSave = async () => {
+    if (!userIdNum) return;
+
     setSaving(true);
     try {
-      const fd = new FormData();
-      fd.append("note", note);
-      images.forEach((it) => fd.append("images[]", it.file, it.file.name));
+      // 1) สร้าง note
+      const inputNote = {
+        user_id: userIdNum,
+        note_text: note.trim() || null,
+        note_date: todayStr,
+      };
+      const res = await createUserNote({ variables: { input: inputNote } });
+      const noteId = res.data?.createUserNote?.id as number | undefined;
+      if (!noteId) throw new Error("No note id returned");
 
-      // ตัวอย่างเรียก API (ปล่อยคอมเมนต์ไว้ก่อน)
-      // const res = await fetch("/api/notes", { method: "POST", body: fd });
-      // if (!res.ok) throw new Error("Save failed");
+      // 2) อัปโหลดรูป (ครั้งเดียว ส่งเป็น array) ถ้ามี
+      if (images.length > 0) {
+        const files = images.map((i) => i.file);
+        await createUserNoteImages({
+          variables: { user_note_id: noteId, files },
+        });
+      }
 
-      console.log("Saving...", { note, imagesCount: images.length });
-      // TODO: แสดง toast/redirect ตามต้องการ
-    } catch (e) {
-      console.error(e);
+      // 3) reset + แจ้งผล
+      setNote("");
+      setImages((prev) => {
+        prev.forEach((p) => URL.revokeObjectURL(p.url));
+        return [];
+      });
+      setConfirming(false);
+
+      await Swal.fire({
+        icon: "success",
+        title: "บันทึกสำเร็จ",
+        text: "บันทึกความรู้สึกของวันนี้เรียบร้อยแล้ว 💙",
+        confirmButtonText: "ไปหน้าบันทึกทั้งหมด",
+      });
+
+      router.push(`history/${userIdNum}`);
+    } catch (e: any) {
+      const msg: string = e?.message || "";
+      if (msg.includes("You already created a note for today")) {
+        Swal.fire({
+          icon: "info",
+          title: "วันนี้คุณบันทึกไปแล้ว",
+          text: "ลองกลับมาบันทึกใหม่ในวันพรุ่งนี้นะ 😊",
+          confirmButtonText: "ไปหน้าบันทึกทั้งหมด",
+        }).then(() => router.push(`history/${userIdNum}`));
+      } else if (msg.includes("This note already has 3 images")) {
+        Swal.fire({
+          icon: "warning",
+          title: "รูปครบแล้ว",
+          text: "โน้ตนี้มีรูป 3 รูปแล้ว ไม่สามารถเพิ่มมากกว่านี้ได้",
+        });
+      } else {
+        Swal.fire({
+          icon: "error",
+          title: "บันทึกไม่สำเร็จ",
+          text: `เกิดข้อผิดพลาด: ${msg || "กรุณาลองใหม่อีกครั้ง"}`,
+        });
+      }
     } finally {
       setSaving(false);
     }
   };
 
   const canSave = !saving && (note.trim().length > 0 || images.length > 0);
+  const hasTodayNoteAlready = !!todayNoteData?.getUserNoteByUserAndDate;
 
   return (
     <motion.main
@@ -87,121 +243,183 @@ export default function CreateNotePage() {
 
       <div className="flex-1 flex flex-col items-center px-4 py-10">
         <div className="w-full max-w-5xl bg-white/95 rounded-2xl p-6 md:p-10 shadow-[0_0_10px_rgba(0,0,0,0.1)]">
-          {/* หัวเรื่อง */}
           <div className="inline-flex items-center px-3 py-1 rounded-lg border-2 border-[#3B82F6] bg-[#EAF2FF]">
             <span className="text-base md:text-lg font-bold text-[#0F172A]">
               ความรู้สึกที่ผ่านเรื่องราว
             </span>
           </div>
 
-          {/* ความในใจ */}
-          <div className="mt-6">
-            <label className="block text-sm md:text-base font-medium text-[#0F172A] mb-2">
-              ความในใจ
-            </label>
-            <div className="rounded-xl border border-gray-200 p-4 md:p-6 bg-white">
-              <textarea
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                placeholder="พิมพ์ความรู้สึกของคุณที่นี่..."
-                className="w-full h-48 md:h-56 resize-y outline-none text-sm md:text-base bg-[length:100%_28px] leading-[28px] p-2
-                  bg-[repeating-linear-gradient(transparent,transparent_27px,#E5E7EB_28px)]"
-              />
+          {todayLoading && (
+            <div className="mt-4 text-sm text-gray-500">
+              กำลังตรวจสอบบันทึกของวันนี้...
             </div>
-          </div>
+          )}
 
-          {/* อัปโหลดรูป (สูงสุด 3) */}
-          <div className="mt-8">
-            <div className="flex items-baseline justify-between gap-4">
-              <label className="block text-sm md:text-base font-medium text-[#0F172A]">
-                รูปภาพที่อยากจะเก็บไว้{" "}
-                <span className="text-gray-500 text-xs md:text-sm">
-                  (สามารถใส่ได้สูงสุด {MAX_IMAGES} รูป)
-                </span>
-              </label>
-              <span className="text-xs text-gray-500">
-                {images.length}/{MAX_IMAGES}
-              </span>
-            </div>
-
-            <div
-              onDragOver={onDragOver}
-              onDrop={onDrop}
-              className="mt-3 rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50"
-            >
-              <div
-                className="px-4 md:px-6 py-6 md:py-8 text-center cursor-pointer"
-                onClick={handleOpenPicker}
-              >
-                <div className="mx-auto inline-flex items-center justify-center w-10 h-10 rounded-full border border-gray-300">
-                  <span className="text-xl">＋</span>
+          {/* ====== โหมดแก้ไข (ฟอร์ม) ====== */}
+          {!confirming && (
+            <>
+              <div className="mt-6">
+                <label className="block text-sm md:text-base font-medium text-[#0F172A] mb-2">
+                  ความในใจ
+                </label>
+                <div className="rounded-xl border border-gray-200 p-4 md:p-6 bg-white">
+                  <textarea
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                    placeholder="พิมพ์ความรู้สึกของคุณที่นี่..."
+                    className="w-full h-48 md:h-56 resize-y outline-none text-sm md:text-base bg-[length:100%_28px] leading-[28px] p-2
+                      bg-[repeating-linear-gradient(transparent,transparent_27px,#E5E7EB_28px)]"
+                    disabled={saving || hasTodayNoteAlready}
+                  />
                 </div>
-                <p className="mt-2 font-medium">เพิ่มรูปภาพ</p>
-                <p className="text-xs text-gray-500">
-                  ลากไฟล์มาวาง หรือคลิกเพื่ออัปโหลดรูป
-                </p>
               </div>
 
-              <div className="grid grid-cols-3 gap-3 px-4 md:px-6 pb-6">
-                {Array.from({ length: MAX_IMAGES }).map((_, i) => {
-                  const item = images[i];
-                  return (
-                    <div
-                      key={i}
-                      className="relative aspect-[4/3] rounded-lg overflow-hidden bg-white border border-gray-200 flex items-center justify-center"
-                    >
-                      {item ? (
-                        <>
-                          <img
-                            src={item.url}
-                            alt={`preview-${i + 1}`}
-                            className="w-full h-full object-cover"
-                          />
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              removeImage(i);
-                            }}
-                            className="absolute top-2 right-2 rounded-full bg-black/60 text-white w-7 h-7 text-sm hover:bg-black/80"
-                            aria-label="ลบรูปภาพ"
-                          >
-                            ✕
-                          </button>
-                        </>
-                      ) : (
-                        <div className="text-gray-400 text-xs">
-                          พรีวิวรูปที่ {i + 1}
-                        </div>
-                      )}
+              <div className="mt-8">
+                <div className="flex items-baseline justify-between gap-4">
+                  <label className="block text-sm md:text-base font-medium text-[#0F172A]">
+                    รูปภาพที่อยากจะเก็บไว้{" "}
+                    <span className="text-gray-500 text-xs md:text-sm">
+                      (สามารถใส่ได้สูงสุด {MAX_IMAGES} รูป)
+                    </span>
+                  </label>
+                  <span className="text-xs text-gray-500">
+                    {images.length}/{MAX_IMAGES}
+                  </span>
+                </div>
+
+                <div
+                  onDragOver={onDragOver}
+                  onDrop={onDrop}
+                  className="mt-3 rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50"
+                >
+                  <div
+                    className={`px-4 md:px-6 py-6 md:py-8 text-center ${
+                      saving || hasTodayNoteAlready
+                        ? "cursor-not-allowed opacity-70"
+                        : "cursor-pointer"
+                    }`}
+                    onClick={
+                      saving || hasTodayNoteAlready
+                        ? undefined
+                        : handleOpenPicker
+                    }
+                  >
+                    <div className="mx-auto inline-flex items-center justify-center w-10 h-10 rounded-full border border-gray-300">
+                      <span className="text-xl">＋</span>
                     </div>
-                  );
-                })}
-              </div>
-            </div>
+                    <p className="mt-2 font-medium">
+                      {hasTodayNoteAlready
+                        ? "วันนี้บันทึกครบแล้ว"
+                        : "เพิ่มรูปภาพ"}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      ลากไฟล์มาวาง หรือคลิกเพื่ออัปโหลดรูป
+                    </p>
+                  </div>
 
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              multiple
-              className="hidden"
-              onChange={onFileChange}
-            />
-          </div>
+                  <div className="grid grid-cols-3 gap-3 px-4 md:px-6 pb-6">
+                    {Array.from({ length: MAX_IMAGES }).map((_, i) => {
+                      const item = images[i];
+                      return (
+                        <div
+                          key={i}
+                          className="relative aspect-[4/3] rounded-lg overflow-hidden bg-white border border-gray-200 flex items-center justify-center"
+                        >
+                          {item ? (
+                            <>
+                              <img
+                                src={item.url}
+                                alt={`preview-${i + 1}`}
+                                className="w-full h-full object-cover"
+                              />
+                              {!saving && !hasTodayNoteAlready && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    removeImage(i);
+                                  }}
+                                  className="absolute top-2 right-2 rounded-full bg-black/60 text-white w-7 h-7 text-sm hover:bg-black/80"
+                                  aria-label="ลบรูปภาพ"
+                                >
+                                  ✕
+                                </button>
+                              )}
+                            </>
+                          ) : (
+                            <div className="text-gray-400 text-xs">
+                              พรีวิวรูปที่ {i + 1}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={onFileChange}
+                  disabled={saving || hasTodayNoteAlready}
+                />
+              </div>
+            </>
+          )}
+
+          {/* ====== โหมดพรีวิว (ทับฟอร์มทั้งหมด) ====== */}
+          {confirming && (
+            <div className="mt-6 border rounded-2xl p-6 bg-white">
+              <div className="flex items-center justify-between mb-3">
+                <div className="font-semibold">Preview</div>
+                <button
+                  type="button"
+                  onClick={() => setConfirming(false)}
+                  className="px-4 py-2 rounded-full border border-gray-300 bg-white hover:bg-gray-50 text-gray-700"
+                >
+                  แก้ไข
+                </button>
+              </div>
+              <div className="text-sm text-gray-700 whitespace-pre-wrap leading-7">
+                {note || "(ไม่มีข้อความ)"}
+              </div>
+              {images.length > 0 && (
+                <div className="mt-4 grid grid-cols-3 gap-3">
+                  {images.map((it, idx) => (
+                    <div
+                      key={idx}
+                      className="aspect-[4/3] overflow-hidden rounded-lg border"
+                    >
+                      <img
+                        src={it.url}
+                        alt={`confirm-${idx + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="mt-8 flex justify-center">
             <button
               type="button"
-              onClick={handleSave}
-              disabled={!canSave}
+              onClick={handlePrimaryClick}
+              disabled={!canSave || hasTodayNoteAlready || saving}
               aria-busy={saving}
               className="px-8 py-3 rounded-full bg-[#007ca1] text-white font-semibold shadow hover:shadow-md hover:opacity-95 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {saving ? "กำลังบันทึก..." : "บันทึก"}
+              {saving
+                ? "กำลังบันทึก..."
+                : confirming
+                ? "ยืนยันบันทึก"
+                : "บันทึก"}
             </button>
           </div>
-
         </div>
       </div>
     </motion.main>
