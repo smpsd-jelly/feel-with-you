@@ -7,7 +7,8 @@ function must(name: string, val?: string) {
 }
 
 const env = {
-  NEXT_PUBLIC_API_URL: () => must("NEXT_PUBLIC_API_URL", process.env.NEXT_PUBLIC_API_URL),
+  NEXT_PUBLIC_API_URL: () =>
+    must("NEXT_PUBLIC_API_URL", process.env.NEXT_PUBLIC_API_URL),
   GOOGLE_CLIENT_ID: () =>
     must("GOOGLE_CLIENT_ID", process.env.GOOGLE_CLIENT_ID),
   GOOGLE_CLIENT_SECRET: () =>
@@ -55,7 +56,7 @@ export const authOptions: NextAuthOptions = {
   ],
   session: {
     strategy: "jwt",
-    maxAge: 24 * 60 * 60, // 1 วัน 
+    maxAge: 24 * 60 * 60, // 1 วัน
   },
   jwt: {
     maxAge: 24 * 60 * 60, // 1 วัน
@@ -87,16 +88,29 @@ export const authOptions: NextAuthOptions = {
             { email: String(token.email) }
           );
           const u = data?.getUserByEmail;
+
           if (u) {
             (token as any).userId = u.id;
             (token as any).level = u.level ?? 1;
             (token as any).first_login = u.first_login ?? null;
-            (token as any).name = u.name ?? null; // << เพิ่ม name จาก DB
+            (token as any).name = u.name ?? null;
+          } else {
+            // email นี้ไม่มี user ใน DB แล้ว
+            (token as any).userId = null;
+            (token as any).level = null;
+            (token as any).first_login = null;
+            (token as any).name = null;
           }
         } catch (e) {
           console.warn("getUserByEmail failed:", e);
+          // เพื่อความปลอดภัย ถ้าเช็ค DB ไม่ได้ เราจะไม่ยืนยันตัวตน
+          (token as any).userId = null;
+          (token as any).level = null;
+          (token as any).first_login = null;
+          (token as any).name = null;
         }
       }
+
       return token;
     },
 

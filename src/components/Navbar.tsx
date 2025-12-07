@@ -38,7 +38,7 @@ export default function Navbar({ activePage }: NavbarProps) {
           </div>
 
           {/* ปุ่มแฮมเบอร์เกอร์ (เฉพาะมือถือ) */}
-          <div className="md:hidden">
+          <div className="lg:hidden">
             <button
               onClick={() => setMenuOpen(!menuOpen)}
               className="text-gray-600 hover:text-gray-900 focus:outline-none"
@@ -48,7 +48,7 @@ export default function Navbar({ activePage }: NavbarProps) {
           </div>
 
           {/* เมนูหลัก (desktop) */}
-          <div className="hidden md:flex md:items-center md:space-x-4">
+          <div className="hidden lg:flex lg:items-center lg:space-x-4">
             {menuItems.map((item) => (
               <a
                 key={item.id}
@@ -64,7 +64,7 @@ export default function Navbar({ activePage }: NavbarProps) {
             ))}
           </div>
 
-          <div className="hidden md:flex items-center space-x-4">
+          <div className="hidden lg:flex items-center space-x-4">
             <button onClick={handleLogout} className="flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900">
               <FaSignOutAlt className="h-4 w-4 " /> Logout
             </button>
@@ -74,7 +74,7 @@ export default function Navbar({ activePage }: NavbarProps) {
 
       {/* เมนูมือถือ */}
        {menuOpen && (
-        <div className="md:hidden px-4 pt-2 pb-3 space-y-1">
+        <div className="lg:hidden px-4 pt-2 pb-3 space-y-1">
           {menuItems.map((item) => (
             <a
               key={item.id}
