@@ -90,7 +90,7 @@ export default function EmotionDisplayComponent({
   // Resolve image src:
   //    - Prefer GraphQL img_url (DB), which is a RELATIVE path /images/EmotionPic/... from backend
   //    - If missing, use local fallback
-  const apiBase = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:4000";
+  const apiBase = process.env.NEXT_PUBLIC_IMAGE_BASE_URL || "http://localhost:4000";
   const dbImgUrl: string | undefined = data?.getMoodByName?.img_url;
 
   const resolvedSrc = dbImgUrl
