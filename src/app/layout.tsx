@@ -18,7 +18,7 @@ const sora = Sora({
 
 export const metadata: Metadata = {
   title: "Feel With You",
-  description: "Next.js with Tailwind and Google Fonts",
+  description: "Feel With You - แอพพลิเคชันที่ช่วยให้คุณสามารถจัดการกับอารมณ์ของคุณได้",
   icons: {
     icon: "/favicon-v2.ico",
   },
