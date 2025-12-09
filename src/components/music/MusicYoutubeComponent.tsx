@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { FaPlay } from "react-icons/fa";
 import { IoCaretBackOutline } from "react-icons/io5";
+import Image from "next/image";
 
 interface MusicYoutubeProps {
   videoIds: string[];
@@ -79,12 +80,14 @@ export default function MusicYoutubeComponent({ videoIds }: MusicYoutubeProps) {
   return (
     <div className="bg-[#FFF4B8] rounded-xl shadow-md p-4 sm:p-6 md:p-8 lg:p-10 w-[250px] sm:w-[300px] md:w-[400px] lg:w-[500px] flex flex-col items-center space-y-2">
       {/* Thumbnail (กดแล้วไป YouTube) */}
-      <div className="w-full aspect-square rounded-md overflow-hidden">
-        <img
+      <div className="w-full aspect-square rounded-md overflow-hidden relative">
+        <Image
           src={thumbnail}
           alt={videoTitle}
-          className="w-full h-full object-cover cursor-pointer hover:opacity-90"
+          fill
+          className="object-cover cursor-pointer hover:opacity-90"
           onClick={openOnYoutube}
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
         />
       </div>
 

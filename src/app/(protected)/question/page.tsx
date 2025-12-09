@@ -206,7 +206,7 @@ export default function QuestionIntroPage() {
                       </div>
                       <div>
                         <p className="font-bold text-gray-800">ปรึกษาผ่านแชทออนไลน์:</p>
-                        <p>DM เพจ <span className="font-semibold text-blue-600">"1323"</span> ปรึกษาปัญหาสุขภาพจิต</p>
+                        <p>DM เพจ <span className="font-semibold text-blue-600">&quot;1323&quot;</span> ปรึกษาปัญหาสุขภาพจิต</p>
                         <a href="https://www.facebook.com/helpline1323" target="_blank" className="text-blue-500 underline">https://www.facebook.com/helpline1323</a>
                       </div>
                     </li>

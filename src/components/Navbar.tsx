@@ -3,6 +3,7 @@
 import { signOut } from 'next-auth/react';
 import { useState } from 'react';
 import { FaBars, FaTimes, FaSignOutAlt } from 'react-icons/fa';
+import Image from 'next/image';
 
 interface NavbarProps {
   activePage: number;
@@ -21,7 +22,7 @@ export default function Navbar({ activePage }: NavbarProps) {
   ];
 
   const handleLogout = () => {
-    signOut({ callbackUrl: '/login' }); 
+    signOut({ callbackUrl: '/login' });
   };
 
   return (
@@ -30,11 +31,16 @@ export default function Navbar({ activePage }: NavbarProps) {
         <div className="flex h-14 items-center justify-between">
           {/* โลโก้และ Mobile Button */}
           <div className="flex items-center">
-            <img
-              className="h-12 w-auto"
-              src="/images/icon.png"
-              alt="Logo"
-            />
+            <div className="flex items-center">
+              <Image
+                className="h-12 w-auto"
+                src="/images/icon.png"
+                alt="Logo"
+                width={1000}
+                height={1000}
+                priority
+              />
+            </div>
           </div>
 
           {/* ปุ่มแฮมเบอร์เกอร์ (เฉพาะมือถือ) */}
@@ -53,11 +59,10 @@ export default function Navbar({ activePage }: NavbarProps) {
               <a
                 key={item.id}
                 href={item.href}
-                className={`px-3 py-2 text-sm font-medium ${
-                  activePage === item.id
+                className={`px-3 py-2 text-sm font-medium ${activePage === item.id
                     ? 'text-[#FF8DD8]'
                     : 'text-gray-700 hover:text-[#FF8DD8]'
-                }`}
+                  }`}
               >
                 {item.label}
               </a>
@@ -73,17 +78,16 @@ export default function Navbar({ activePage }: NavbarProps) {
       </div>
 
       {/* เมนูมือถือ */}
-       {menuOpen && (
+      {menuOpen && (
         <div className="lg:hidden px-4 pt-2 pb-3 space-y-1">
           {menuItems.map((item) => (
             <a
               key={item.id}
               href={item.href}
-              className={`block px-3 py-2 rounded-md text-base font-medium ${
-                activePage === item.id
+              className={`block px-3 py-2 rounded-md text-base font-medium ${activePage === item.id
                   ? 'text-[#FF8DD8]'
                   : 'text-gray-700 hover:text-[#FF8DD8]'
-              }`}
+                }`}
             >
               {item.label}
             </a>

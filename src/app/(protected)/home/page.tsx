@@ -76,41 +76,36 @@ async function loadImageAsFile(src: string, filename: string): Promise<File> {
 }
 
 // UTC day [start, end)
-function todayUtcRange() {
+function getTodayRangeLocal() {
   const now = new Date();
+
+  // สร้างวันที่เริ่มต้นของ "วันนี้" ที่เวลา 00:00:00 ตามเวลาเครื่อง
   const start = new Date(
-    Date.UTC(
-      now.getUTCFullYear(),
-      now.getUTCMonth(),
-      now.getUTCDate(),
-      0,
-      0,
-      0,
-      0
-    )
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+    0, 0, 0, 0
   );
+
+  // สร้างวันที่เริ่มต้นของ "พรุ่งนี้" ที่เวลา 00:00:00 ตามเวลาเครื่อง (เพื่อใช้เป็นจุดสิ้นสุด)
   const end = new Date(
-    Date.UTC(
-      now.getUTCFullYear(),
-      now.getUTCMonth(),
-      now.getUTCDate() + 1,
-      0,
-      0,
-      0,
-      0
-    )
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate() + 1,
+    0, 0, 0, 0
   );
+
+  // .toISOString() จะแปลงเวลา 00:00 น. ของไทย ให้เป็น UTC ที่ถูกต้องโดยอัตโนมัติ (เช่น เป็น 17:00 ของวันก่อนหน้า)
   return { start: start.toISOString(), end: end.toISOString() };
 }
-
 export default function HomePage2() {
   const { data: session } = useSession();
 
   // prepare variables for today's range
-  const { start, end } = todayUtcRange();
+  const { start, end } = getTodayRangeLocal();
 
   // query today's mood (skip until we know userId)
-  const { data: todayData } = useQuery(GET_TODAY_MOOD, {
+  const { data: todayData, loading: isMoodLoading } = useQuery(GET_TODAY_MOOD, {
     skip: !session?.userId,
     variables: {
       userId: Number(session?.userId),
@@ -138,9 +133,9 @@ export default function HomePage2() {
   // map emotion -> moodKey (เฉพาะ 4 อารมณ์หลัก)
   const todayMoodKey: MoodKey | null =
     todaysEmotion === "happy" ||
-    todaysEmotion === "sad" ||
-    todaysEmotion === "angry" ||
-    todaysEmotion === "gloomy"
+      todaysEmotion === "sad" ||
+      todaysEmotion === "angry" ||
+      todaysEmotion === "gloomy"
       ? (todaysEmotion as MoodKey)
       : null;
 
@@ -195,18 +190,30 @@ export default function HomePage2() {
       </div>
 
       <div className="flex-1 flex flex-col justify-center items-center gap-3">
-        {/* Show today's mood if present; otherwise render nothing */}
-        <EmotionDisplayComponent emotion={todaysEmotion} />
+        {isMoodLoading ? (
+          <></>
+        ) : (
+          <>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }} // เริ่มต้น: จางและเล็กกว่าปกตินิดนึง
+              animate={{ opacity: 1, scale: 1 }}    // สุดท้าย: ชัดเจนและขนาดปกติ
+              transition={{ duration: 0.8 }}        // ระยะเวลา: 0.8 วินาที (ปรับให้ช้า/เร็วได้ตรงนี้)
+              className="flex flex-col items-center gap-3"
+            >
+              <EmotionDisplayComponent emotion={todaysEmotion} />
 
-        {todayMoodKey && (
-          <button
-            type="button"
-            onClick={shareTodayMoodToIG}
-            className="mt-1 inline-flex items-center rounded-full bg-[#FFF4B8] hover:bg-[#cac18f] text-[#555555] px-4 py-2 text-xs sm:text-sm shadow mb-5"
-          >
-            <FaRegShareSquare className="mr-1" />
-            แชร์อารมณ์ของฉันวันนี้ใน IG Story
-          </button>
+              {todayMoodKey && (
+                <button
+                  type="button"
+                  onClick={shareTodayMoodToIG}
+                  className="mt-1 inline-flex items-center rounded-full bg-[#FFF4B8] hover:bg-[#cac18f] text-[#555555] px-4 py-2 text-xs sm:text-sm shadow mb-5"
+                >
+                  <FaRegShareSquare className="mr-1" />
+                  แชร์อารมณ์ของฉันวันนี้ใน IG Story
+                </button>
+              )}
+            </motion.div>
+          </>
         )}
       </div>
     </motion.main>
