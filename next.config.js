@@ -15,6 +15,10 @@ const nextConfig = {
         port: '',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'feel-with-you-api-production.up.railway.app', 
+      },
     ],
   },
 }
