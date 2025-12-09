@@ -121,7 +121,7 @@ export default function QuestionIntroPage() {
     onError: (error) => {
       console.error("Score calculation failed:", error);
       alert("Error calculating score. Please try again.");
-      router.push("/home"); 
+      router.push("/home");
     }
   });
 
@@ -147,9 +147,29 @@ export default function QuestionIntroPage() {
 
   // Build the 20-question set
   useEffect(() => {
-    if (!questionLoading && !questionError && questionData?.getAllQuestion && quizQuestions.length === 0) {
+    if (
+      !questionLoading &&
+      !questionError &&
+      questionData?.getAllQuestion &&
+      quizQuestions.length === 0
+    ) {
       const all: Question[] = questionData.getAllQuestion;
-      const selected = sampleN(all, 20);
+
+      // Remove Duplicates 
+      // Map to ensure every Question ID is unique.
+      // If the API sends the same ID twice, this keeps only the first one.
+      const uniqueMap = new Map();
+      all.forEach((q) => {
+        // 'q.id' to 'q.question_detail' 
+        if (!uniqueMap.has(q.id)) {
+          uniqueMap.set(q.id, q);
+        }
+      });
+      const uniqueQuestions = Array.from(uniqueMap.values());
+
+      // Randomize and Slice 
+      const selected = sampleN(uniqueQuestions, 20);
+
       setQuizQuestions(selected);
     }
   }, [questionData, questionLoading, questionError, quizQuestions.length]);
