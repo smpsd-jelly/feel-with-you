@@ -51,7 +51,7 @@ export default function StartPage() {
               <span style={{ color: "#88C7EE" }}>You</span>
             </p>
 
-            <button onClick={handleClick} aria-label="ไปต่อ (Intro)">
+            <button onClick={handleClick}>
               <PlayCircleIcon
                 style={{
                   color: "#72C052",

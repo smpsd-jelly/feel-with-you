@@ -9,6 +9,8 @@ import { useSession } from "next-auth/react";
 import { useParams, useRouter } from "next/navigation";
 import Swal from "sweetalert2";
 import { MdDeleteForever } from "react-icons/md";
+import { FaRegStickyNote, FaRegHandPointer, FaRegImages } from "react-icons/fa";
+import { FaRegSave } from "react-icons/fa";
 
 type NoteImage = { id: number; url: string };
 type NoteItem = {
@@ -118,6 +120,16 @@ export default function NoteHistoryPage() {
   const FILE_BASE =
     (process.env.NEXT_PUBLIC_API_URL?.replace(/\/graphql.*/, "") as string) ||
     "";
+
+  const HELP_LS_KEY = "seen_note_history_help_v1";
+  const [helpOpen, setHelpOpen] = useState(false);
+  const [dontShowAgain, setDontShowAgain] = useState(true);
+
+  useEffect(() => {
+    // เปิดครั้งแรก ถ้ายังไม่เคยเห็น
+    const seen = localStorage.getItem(HELP_LS_KEY);
+    if (!seen) setHelpOpen(true);
+  }, []);
 
   // guard
   useEffect(() => {
@@ -433,7 +445,107 @@ export default function NoteHistoryPage() {
       style={{ backgroundImage: "url('/images/bg-note-create.png')" }}
     >
       <Navbar activePage={4} />
+      {helpOpen && (
+        <div
+          className="fixed inset-0 z-[1100] flex items-center justify-center"
+          aria-modal="true"
+          role="dialog"
+        >
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setHelpOpen(false)}
+          />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.96, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ type: "spring", stiffness: 260, damping: 20 }}
+            className="relative z-10 w-[92%] max-w-lg rounded-2xl bg-white p-5 sm:p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-center gap-2">
+              <FaRegStickyNote className="text-[#007ca1]" />
+              <h3 className="text-base sm:text-lg font-bold text-gray-800 text-center">
+                วิธีดูบันทึกย้อนหลัง
+              </h3>
+            </div>
 
+            <p className="mt-3 text-sm text-gray-600 text-center">
+              หน้านี้คือพื้นที่ดูบันทึกของคุณย้อนหลังตามวัน
+              พร้อมดูรูปภาพประกอบได้ และแก้ไขได้เฉพาะ “บันทึกของวันนี้”
+            </p>
+
+            <div className="mt-4 space-y-3 text-sm text-gray-700">
+              <div className="rounded-xl border bg-[#F3FBFF] p-3 flex gap-3">
+                <FaRegHandPointer className="mt-[2px] text-[#007ca1]" />
+                <div>
+                  <div className="font-semibold text-gray-800">
+                    1) เลือกวันจากปฏิทิน
+                  </div>
+                  <div className="text-gray-700">
+                    เลือกวันที่ต้องการดูจากช่องเลือกวันด้านบน
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-xl border bg-[#FFF8F8] p-3 flex gap-3">
+                <FaRegImages className="mt-[2px] text-[#E75C5C]" />
+                <div>
+                  <div className="font-semibold text-gray-800">
+                    2) กดรูปเพื่อดูใหญ่
+                  </div>
+                  <div className="text-gray-700">
+                    คลิกรูปภาพในโน้ตเพื่อเปิดดูแบบเต็มจอ
+                    และกดลูกศรเพื่อเลื่อนรูป
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-xl border bg-[#FFF7E8] p-3 flex gap-3">
+                <FaRegSave className="mt-[2px] text-[#d4a017]" />
+                <div>
+                  <div className="font-semibold text-gray-800">
+                    3) แก้ไขได้เฉพาะวันนี้
+                  </div>
+                  <div className="text-gray-700">
+                    ถ้าเป็นบันทึก “วันนี้” จะมีปุ่ม “แก้ไข” ให้ปรับข้อความ/รูป
+                    แล้วกด “บันทึก”
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <label className="mt-4 flex items-center gap-2 text-sm text-gray-700">
+              <input
+                type="checkbox"
+                checked={dontShowAgain}
+                onChange={(e) => setDontShowAgain(e.target.checked)}
+              />
+              ไม่ต้องแสดงอีก
+            </label>
+
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                type="button"
+                className="px-4 py-2 text-sm rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700"
+                onClick={() => setHelpOpen(false)}
+              >
+                ปิด
+              </button>
+              <button
+                type="button"
+                className="px-4 py-2 text-sm rounded-lg bg-[#007ca1] hover:opacity-95 text-white"
+                onClick={() => {
+                  if (dontShowAgain) localStorage.setItem(HELP_LS_KEY, "1");
+                  else localStorage.removeItem(HELP_LS_KEY);
+                  setHelpOpen(false);
+                }}
+              >
+                เข้าใจแล้ว
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
       <div className="flex-1 flex flex-col items-center px-4 py-10">
         <div className="w-full max-w-5xl bg-white/95 rounded-2xl p-6 md:p-10 shadow-[0_0_10px_rgba(0,0,0,0.1)]">
           {/* Header */}

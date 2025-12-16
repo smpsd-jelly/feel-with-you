@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Navbar from "@/components/Navbar";
 import { motion } from "framer-motion";
 import { gql, useMutation, useQuery } from "@apollo/client";
@@ -8,7 +8,13 @@ import { useSession } from "next-auth/react";
 import { resolveImgSrc } from "@/utils/resolveImg";
 import { CreateResp, CreateVars } from "@/Interface/MoodCalendarInterface";
 import { useRouter } from "next/navigation";
-import { FaRegShareSquare } from "react-icons/fa";
+import NextImage from "next/image";
+import {
+  FaRegCalendarAlt,
+  FaRegHandPointer,
+  FaRegEdit,
+  FaRegShareSquare,
+} from "react-icons/fa";
 
 // ------------------- GraphQL Queries -------------------
 const GET_MOOD_CALENDAR_BY_USER = gql`
@@ -139,16 +145,16 @@ const MOOD_META: Array<{
   en: string;
   fallback: string;
 }> = [
-    { key: "happy", th: "สดใส", en: "Happy", fallback: "/images/emotion2.png" },
-    { key: "sad", th: "เศร้า", en: "Sad", fallback: "/images/emotion3.png" },
-    { key: "angry", th: "โกรธ", en: "Angry", fallback: "/images/emotion4.png" },
-    {
-      key: "gloomy",
-      th: "หม่นหมอง",
-      en: "Gloomy",
-      fallback: "/images/emotion1.png",
-    },
-  ];
+  { key: "happy", th: "สดใส", en: "Happy", fallback: "/images/emotion2.png" },
+  { key: "sad", th: "เศร้า", en: "Sad", fallback: "/images/emotion3.png" },
+  { key: "angry", th: "โกรธ", en: "Angry", fallback: "/images/emotion4.png" },
+  {
+    key: "gloomy",
+    th: "หม่นหมอง",
+    en: "Gloomy",
+    fallback: "/images/emotion1.png",
+  },
+];
 
 const IG_STORY_IMAGE: Record<MoodKey, string> = {
   happy: "/images/mood-ig/mood-story-happy.png",
@@ -161,7 +167,22 @@ const IG_STORY_IMAGE: Record<MoodKey, string> = {
 
 export default function MoodCalendarPage() {
   const { data: session } = useSession();
-  const router = useRouter();
+  const HELP_LS_KEY = "mood_calendar_help_hidden";
+  const [helpOpen, setHelpOpen] = useState(false);
+  const [dontShowAgain, setDontShowAgain] = useState(false);
+
+  const SEEN_KEY = "mood_calendar_help_seen";
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (dontShowAgain) return; // ถ้าติ๊กไม่ต้องแสดงอีก → ไม่เด้ง
+
+    const seen = localStorage.getItem(SEEN_KEY) === "1";
+    if (!seen) {
+      setHelpOpen(true);
+      localStorage.setItem(SEEN_KEY, "1");
+    }
+  }, [dontShowAgain]);
 
   const userIdNum = useMemo(() => {
     const raw =
@@ -217,7 +238,8 @@ export default function MoodCalendarPage() {
     [happyQ, sadQ, angryQ, gloomyQ]
   );
 
-  const today = new Date();
+  const today = useMemo(() => new Date(), []);
+
   const currentYear = today.getFullYear();
   const currentMonth = today.getMonth();
   const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
@@ -263,14 +285,18 @@ export default function MoodCalendarPage() {
     return map;
   }, [data]);
 
-  const openPickerIfToday = (day: number) => {
-    if (day !== todayDate) return;
-    setPickerDay(day);
-    const existingMood = moodKeyByDay[day];
-    setSelectedMood(existingMood || null);
-    setPickerOpen(true);
-  };
-  const closePicker = () => setPickerOpen(false);
+  const openPickerIfToday = useCallback(
+    (day: number) => {
+      if (day !== todayDate) return;
+      setPickerDay(day);
+      const existingMood = moodKeyByDay[day];
+      setSelectedMood(existingMood || null);
+      setPickerOpen(true);
+    },
+    [todayDate, moodKeyByDay]
+  );
+
+  const closePicker = useCallback(() => setPickerOpen(false), []);
 
   const [createMoodCalendar, { loading: saveLoading }] = useMutation<
     CreateResp,
@@ -281,11 +307,11 @@ export default function MoodCalendarPage() {
     },
     refetchQueries: shouldQuery
       ? [
-        {
-          query: GET_MOOD_CALENDAR_BY_USER,
-          variables: { userId: userIdNum, start, end },
-        },
-      ]
+          {
+            query: GET_MOOD_CALENDAR_BY_USER,
+            variables: { userId: userIdNum, start, end },
+          },
+        ]
       : [],
   });
 
@@ -354,8 +380,8 @@ export default function MoodCalendarPage() {
   const btnTitle = !selectedMood
     ? "กรุณาเลือกอารมณ์ก่อน"
     : saveLoading
-      ? "กำลังบันทึก..."
-      : "";
+    ? "กำลังบันทึก..."
+    : "";
 
   const emotionsByDay = useMemo<Record<number, string>>(() => {
     const map: Record<number, string> = {};
@@ -407,15 +433,15 @@ export default function MoodCalendarPage() {
           </div>
           <div className="h-6 sm:h-10 flex items-center justify-center mt-2 sm:mt-4 md:mt-7">
             {img && (
-              <img
+              <NextImage
                 src={img}
                 alt={`emotion-${day}`}
-                className="w-20 sm:w-24 md:w-28 object-contain pointer-events-none"
+                width={112} // ประมาณ w-28
+                height={112}
+                className="w-20 sm:w-24 md:w-28 h-auto object-contain pointer-events-none"
               />
             )}
           </div>
-
-          {/* แก้ไข: ใช้ invisible แทนการไม่ render เพื่อให้ layout (ความสูง) เท่ากันทุกช่อง */}
           <span
             className={[
               "mt-1 text-[10px] font-medium",
@@ -441,7 +467,7 @@ export default function MoodCalendarPage() {
     }
 
     return cells;
-  }, [startDay, daysInMonth, emotionsByDay, todayDate, moodKeyByDay]);
+  }, [startDay, daysInMonth, emotionsByDay, todayDate, openPickerIfToday]);
 
   const monthName = new Intl.DateTimeFormat("en-US", { month: "long" }).format(
     today
@@ -456,6 +482,102 @@ export default function MoodCalendarPage() {
       style={{ backgroundImage: "url('/images/bg-calendar.png')" }}
     >
       <Navbar activePage={3} />
+      {helpOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center px-4">
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setHelpOpen(false)}
+          />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.96, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ type: "spring", stiffness: 260, damping: 20 }}
+            className="relative z-10 w-full max-w-md rounded-2xl bg-white p-5 sm:p-6 shadow-2xl"
+          >
+            <div className="flex items-center justify-center gap-2">
+              <FaRegCalendarAlt className="text-[#E75C5C]" />
+              <h3 className="text-base sm:text-lg font-bold text-gray-800 text-center">
+                วิธีใช้ปฏิทินอารมณ์
+              </h3>
+            </div>
+
+            <p className="mt-3 text-sm text-gray-600 text-center">
+              นี่คือปฏิทินบันทึกอารมณ์ของคุณในแต่ละวัน
+            </p>
+
+            <div className="mt-4 space-y-3 text-sm text-gray-700">
+              <div className="rounded-xl border bg-[#FFF8F8] p-3 flex gap-3">
+                <FaRegHandPointer className="mt-[2px] text-[#E75C5C]" />
+                <div>
+                  <div className="font-semibold text-gray-800">
+                    วิธีแก้ไขอารมณ์
+                  </div>
+                  <div className="text-gray-700">
+                    แตะที่ช่อง <b>Today</b> ในปฏิทิน เพื่อแก้ไขได้เลย
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-xl border bg-[#F3FBFF] p-3 flex gap-3">
+                <FaRegEdit className="mt-[2px] text-[#4BB5F9]" />
+                <div>
+                  <div className="font-semibold text-gray-800">
+                    แก้ไขได้เฉพาะวันปัจจุบันเท่านั้น
+                  </div>
+                  <div className="text-gray-700">
+                    วันอื่น ๆ จะดูย้อนหลังได้ แต่ไม่สามารถแก้ไขได้
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-xl border bg-[#FFF7E8] p-3 flex gap-3">
+                <FaRegShareSquare className="mt-[2px] text-[#d4a017]" />
+                <div>
+                  <div className="font-semibold text-gray-800">
+                    แชร์อารมณ์ของคุณวันนี้
+                  </div>
+                  <div className="text-gray-700">
+                    กดปุ่มแชร์ด้านล่าง เพื่อให้เพื่อนของคุณเห็นกัน
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* <label className="mt-4 flex items-center gap-2 text-sm text-gray-700">
+              <input
+                type="checkbox"
+                checked={dontShowAgain}
+                onChange={(e) => setDontShowAgain(e.target.checked)}
+              />
+              ไม่ต้องแสดงอีก
+            </label> */}
+
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                type="button"
+                className="px-4 py-2 text-sm rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700"
+                onClick={() => setHelpOpen(false)}
+              >
+                ปิด
+              </button>
+              <button
+                type="button"
+                className="px-4 py-2 text-sm rounded-lg bg-[#4BB5F9] hover:bg-[#43a3df] text-white"
+                onClick={() => {
+                  if (dontShowAgain) {
+                    localStorage.setItem(HELP_LS_KEY, "1");
+                  } else {
+                    localStorage.removeItem(HELP_LS_KEY);
+                  }
+                  setHelpOpen(false);
+                }}
+              >
+                เข้าใจแล้ว
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
 
       <div className="flex flex-col items-center mt-9 px-2 pb-10">
         <h2 className="text-base sm:text-lg md:text-2xl font-bold text-center">
@@ -549,11 +671,14 @@ export default function MoodCalendarPage() {
                           : "border-gray-200",
                       ].join(" ")}
                     >
-                      <img
+                      <NextImage
                         src={moodImages[m.key]}
                         alt={`${m.th} (${m.en})`}
+                        width={96}
+                        height={64}
                         className="w-20 h-14 sm:w-24 sm:h-16 object-contain mb-2"
                       />
+
                       <div className="text-center leading-tight">
                         <div className="text-[12px] sm:text-sm text-gray-800 font-medium">
                           {m.th}

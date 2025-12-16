@@ -62,6 +62,17 @@ export default function LoginPage() {
               <FcGoogle className="mr-2 text-xl" />
               {isLoading ? "กำลังตรวจสอบ..." : "Login with Google"}
             </button>
+
+            {/* ✅ คำแนะนำให้ user friendly */}
+            <p className="text-center text-sm text-gray-600 leading-relaxed">
+              เข้าสู่ระบบได้ทันที{" "}
+              <span className="font-semibold text-gray-800">
+                ไม่ต้องสมัครสมาชิก
+              </span>
+              <br />
+              เพียงใช้บัญชี Google ของคุณ 
+            </p>
+
           </div>
         </div>
       </div>

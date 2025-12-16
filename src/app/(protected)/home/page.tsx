@@ -6,7 +6,11 @@ import Navbar from "@/components/Navbar";
 import { motion } from "framer-motion";
 import { gql, useQuery } from "@apollo/client";
 import { useSession } from "next-auth/react";
-import { FaRegShareSquare } from "react-icons/fa";
+import { FaFastForward, FaRegShareSquare } from "react-icons/fa";
+import { FaRegCheckCircle } from "react-icons/fa";
+import { useState, useEffect } from "react";
+import FirstTimeOverlay from "@/components/FirstTimeOverlay";
+import { useRouter } from "next/navigation";
 
 // ---- GraphQL: fetch today's mood for this user (joined mood) ----
 const GET_TODAY_MOOD = gql`
@@ -79,29 +83,42 @@ async function loadImageAsFile(src: string, filename: string): Promise<File> {
 function getTodayRangeLocal() {
   const now = new Date();
 
-  // สร้างวันที่เริ่มต้นของ "วันนี้" ที่เวลา 00:00:00 ตามเวลาเครื่อง
   const start = new Date(
     now.getFullYear(),
     now.getMonth(),
     now.getDate(),
-    0, 0, 0, 0
+    0,
+    0,
+    0,
+    0
   );
-
-  // สร้างวันที่เริ่มต้นของ "พรุ่งนี้" ที่เวลา 00:00:00 ตามเวลาเครื่อง (เพื่อใช้เป็นจุดสิ้นสุด)
   const end = new Date(
     now.getFullYear(),
     now.getMonth(),
     now.getDate() + 1,
-    0, 0, 0, 0
+    0,
+    0,
+    0,
+    0
   );
 
-  // .toISOString() จะแปลงเวลา 00:00 น. ของไทย ให้เป็น UTC ที่ถูกต้องโดยอัตโนมัติ (เช่น เป็น 17:00 ของวันก่อนหน้า)
   return { start: start.toISOString(), end: end.toISOString() };
 }
-export default function HomePage2() {
-  const { data: session } = useSession();
 
-  // prepare variables for today's range
+export default function HomePage2() {
+  const router = useRouter();
+  const { data: session } = useSession();
+  const [openOverlay, setOpenOverlay] = useState(false);
+
+  useEffect(() => {
+    const key = "seen_first_time_overlay_v1";
+    const seen = localStorage.getItem(key);
+    if (!seen) {
+      setOpenOverlay(true);
+      localStorage.setItem(key, "1");
+    }
+  }, []);
+
   const { start, end } = getTodayRangeLocal();
 
   // query today's mood (skip until we know userId)
@@ -130,12 +147,15 @@ export default function HomePage2() {
     ? (finalName as EmotionName)
     : "default";
 
+  // ✅ ถ้าวันนี้ยังไม่มี record จริง ๆ => เป็น default
+  const isDefaultToday = !moodNameRaw || todaysEmotion === "default";
+
   // map emotion -> moodKey (เฉพาะ 4 อารมณ์หลัก)
   const todayMoodKey: MoodKey | null =
     todaysEmotion === "happy" ||
-      todaysEmotion === "sad" ||
-      todaysEmotion === "angry" ||
-      todaysEmotion === "gloomy"
+    todaysEmotion === "sad" ||
+    todaysEmotion === "angry" ||
+    todaysEmotion === "gloomy"
       ? (todaysEmotion as MoodKey)
       : null;
 
@@ -156,7 +176,6 @@ export default function HomePage2() {
           text: "วันนี้อารมณ์ของฉันเป็นแบบนี้ 🌤",
         });
       } else {
-        // fallback: ดาวน์โหลดรูปไว้ แล้วให้ผู้ใช้อัปโหลดเอง
         const a = document.createElement("a");
         a.href = src;
         a.download = filename;
@@ -181,39 +200,52 @@ export default function HomePage2() {
       className="min-h-screen bg-center bg-cover bg-no-repeat flex flex-col"
       style={{ backgroundImage: "url('/images/bg-home.png')" }}
     >
+      <FirstTimeOverlay
+        open={openOverlay}
+        onClose={() => setOpenOverlay(false)}
+      />
       <Navbar activePage={1} />
+
       <div className="flex justify-end px-4 mt-4">
-        <MusicCardComponent
-          src="/audio/your-cloud.m4a"
-          title="ก้อนเมฆของคุณ"
-        />
+        <MusicCardComponent src="/audio/your-cloud.m4a" title="ก้อนเมฆของคุณ" />
       </div>
 
-      <div className="flex-1 flex flex-col justify-center items-center gap-3">
+      <div className="flex-1 flex flex-col justify-center items-center gap-3 px-4">
         {isMoodLoading ? (
           <></>
         ) : (
-          <>
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }} // เริ่มต้น: จางและเล็กกว่าปกตินิดนึง
-              animate={{ opacity: 1, scale: 1 }}    // สุดท้าย: ชัดเจนและขนาดปกติ
-              transition={{ duration: 0.8 }}        // ระยะเวลา: 0.8 วินาที (ปรับให้ช้า/เร็วได้ตรงนี้)
-              className="flex flex-col items-center gap-3"
-            >
-              <EmotionDisplayComponent emotion={todaysEmotion} />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.8 }}
+            className="flex flex-col items-center gap-3"
+          >
+            <EmotionDisplayComponent emotion={todaysEmotion} />
 
-              {todayMoodKey && (
-                <button
-                  type="button"
-                  onClick={shareTodayMoodToIG}
-                  className="mt-1 inline-flex items-center rounded-full bg-[#FFF4B8] hover:bg-[#cac18f] text-[#555555] px-4 py-2 text-xs sm:text-sm shadow mb-5"
-                >
-                  <FaRegShareSquare className="mr-1" />
-                  แชร์อารมณ์ของฉันวันนี้ใน IG Story
-                </button>
-              )}
-            </motion.div>
-          </>
+            {isDefaultToday && (
+              <button
+                type="button"
+                onClick={() => router.push("/moodtracker/intro")}
+                className="mt-2 w-full max-w-sm bg-[#4BB5F9] hover:bg-[#43a3df]
+                font-medium py-2 px-5 text-sm sm:text-base text-white
+                rounded-3xl shadow-md transition flex items-center justify-center gap-2"
+              >
+                
+                ไปยังหน้าเลือกอารมณ์ <FaFastForward className="text-sm sm:text-base" />
+              </button>
+            )}
+
+            {todayMoodKey && (
+              <button
+                type="button"
+                onClick={shareTodayMoodToIG}
+                className="mt-1 inline-flex items-center rounded-full bg-[#FFF4B8] hover:bg-[#cac18f] text-[#555555] px-4 py-2 text-xs sm:text-sm shadow mb-5"
+              >
+                <FaRegShareSquare className="mr-1" />
+                แชร์อารมณ์ของฉันวันนี้ใน IG Story
+              </button>
+            )}
+          </motion.div>
         )}
       </div>
     </motion.main>

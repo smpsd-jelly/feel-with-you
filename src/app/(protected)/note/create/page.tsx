@@ -8,6 +8,13 @@ import { gql, useMutation, useQuery } from "@apollo/client";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Swal from "sweetalert2";
+import Image from "next/image";
+import {
+  FaRegStickyNote,
+  FaRegHandPointer,
+  FaRegImages,
+  FaRegSave,
+} from "react-icons/fa";
 
 type ImgItem = { file: File; url: string };
 const MAX_IMAGES = 3;
@@ -49,6 +56,12 @@ const GET_TODAY_NOTE = gql`
   }
 `;
 
+const HAS_ANY_USER_NOTE = gql`
+  query HasAnyUserNote($user_id: Int!) {
+    hasAnyUserNote(user_id: $user_id)
+  }
+`;
+
 function todayDateOnlyString() {
   const now = new Date();
   const y = now.getFullYear();
@@ -75,6 +88,14 @@ export default function CreateNotePage() {
     (session as any)?.userId ?? (session as any)?.user?.userId ?? null;
   const userIdNum = rawUserId ? Number(rawUserId) : 0;
   const todayStr = todayDateOnlyString();
+  const HELP_LS_KEY = "note_create_help_hidden";
+  const [helpOpen, setHelpOpen] = useState(false);
+  const [dontShowAgain, setDontShowAgain] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    setDontShowAgain(localStorage.getItem(HELP_LS_KEY) === "1");
+  }, []);
 
   const {
     data: todayNoteData,
@@ -83,6 +104,12 @@ export default function CreateNotePage() {
   } = useQuery(GET_TODAY_NOTE, {
     skip: !userIdNum,
     variables: { user_id: userIdNum, note_date: todayStr },
+    fetchPolicy: "network-only",
+  });
+
+  const { data: anyNoteData } = useQuery(HAS_ANY_USER_NOTE, {
+    skip: !userIdNum,
+    variables: { user_id: userIdNum },
     fetchPolicy: "network-only",
   });
 
@@ -101,6 +128,19 @@ export default function CreateNotePage() {
   useEffect(() => {
     return () => images.forEach((i) => URL.revokeObjectURL(i.url));
   }, [images]);
+
+  useEffect(() => {
+    if (!userIdNum) return;
+
+    // ถ้าวันนี้มีโน้ตแล้ว เดี๋ยว flow เดิมของคุณจัดการ Swal + redirect อยู่แล้ว
+    if (todayLoading) return;
+    if (todayNoteData?.getUserNoteByUserAndDate) return;
+
+    // เปิดสอนเฉพาะคนที่ "ยังไม่เคยมีโน้ตเลย"
+    if (anyNoteData?.hasAnyUserNote === false && !dontShowAgain) {
+      setHelpOpen(true);
+    }
+  }, [userIdNum, todayLoading, todayNoteData, anyNoteData, dontShowAgain]);
 
   const handleOpenPicker = () => fileInputRef.current?.click();
 
@@ -240,6 +280,104 @@ export default function CreateNotePage() {
       style={{ backgroundImage: "url('/images/bg-note-create.png')" }}
     >
       <Navbar activePage={4} />
+
+      {helpOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center px-4">
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setHelpOpen(false)}
+          />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.96, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ type: "spring", stiffness: 260, damping: 20 }}
+            className="relative z-10 w-full max-w-md rounded-2xl bg-white p-5 sm:p-6 shadow-2xl"
+          >
+            <div className="flex items-center justify-center gap-2">
+              <FaRegStickyNote className="text-[#007ca1]" />
+              <h3 className="text-base sm:text-lg font-bold text-gray-800 text-center">
+                วิธีบันทึกประจำวัน
+              </h3>
+            </div>
+
+            <p className="mt-3 text-sm text-gray-600 text-center">
+              หน้านี้คือพื้นที่บันทึกความรู้สึกของคุณในแต่ละวัน
+              พร้อมรูปภาพประกอบได้
+            </p>
+
+            <div className="mt-4 space-y-3 text-sm text-gray-700">
+              <div className="rounded-xl border bg-[#F3FBFF] p-3 flex gap-3">
+                <FaRegHandPointer className="mt-[2px] text-[#007ca1]" />
+                <div>
+                  <div className="font-semibold text-gray-800">
+                    1) พิมพ์ความในใจ
+                  </div>
+                  <div className="text-gray-700">
+                    พิมพ์ข้อความในช่อง “ความในใจ” ได้เลย
+                    (จะเขียนสั้นหรือยาวก็ได้)
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-xl border bg-[#FFF8F8] p-3 flex gap-3">
+                <FaRegImages className="mt-[2px] text-[#E75C5C]" />
+                <div>
+                  <div className="font-semibold text-gray-800">
+                    2) เพิ่มรูปภาพ
+                  </div>
+                  <div className="text-gray-700">
+                    กด “เพิ่มรูปภาพ” หรือ ลากไฟล์มาวางได้ (สูงสุด {MAX_IMAGES}{" "}
+                    รูป)
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-xl border bg-[#FFF7E8] p-3 flex gap-3">
+                <FaRegSave className="mt-[2px] text-[#d4a017]" />
+                <div>
+                  <div className="font-semibold text-gray-800">
+                    3) บันทึกแบบยืนยัน
+                  </div>
+                  <div className="text-gray-700">
+                    กด “บันทึก” เพื่อดู Preview ก่อน แล้วกด “ยืนยันบันทึก”
+                    เพื่อบันทึกจริง
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <label className="mt-4 flex items-center gap-2 text-sm text-gray-700">
+              <input
+                type="checkbox"
+                checked={dontShowAgain}
+                onChange={(e) => setDontShowAgain(e.target.checked)}
+              />
+              ไม่ต้องแสดงอีก
+            </label>
+
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                type="button"
+                className="px-4 py-2 text-sm rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700"
+                onClick={() => setHelpOpen(false)}
+              >
+                ปิด
+              </button>
+              <button
+                type="button"
+                className="px-4 py-2 text-sm rounded-lg bg-[#007ca1] hover:opacity-95 text-white"
+                onClick={() => {
+                  if (dontShowAgain) localStorage.setItem(HELP_LS_KEY, "1");
+                  else localStorage.removeItem(HELP_LS_KEY);
+                  setHelpOpen(false);
+                }}
+              >
+                เข้าใจแล้ว
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
 
       <div className="flex-1 flex flex-col items-center px-4 py-10">
         <div className="w-full max-w-5xl bg-white/95 rounded-2xl p-6 md:p-10 shadow-[0_0_10px_rgba(0,0,0,0.1)]">

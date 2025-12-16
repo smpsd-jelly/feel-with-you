@@ -5,7 +5,7 @@ import Image from "next/image";
 import toast, { Toaster } from "react-hot-toast";
 import { PlayCircleIcon } from "@heroicons/react/24/solid";
 import { useRouter } from "next/navigation";
-import { DocumentNode, gql, useMutation } from "@apollo/client";
+import { gql, useMutation } from "@apollo/client";
 import { useSession } from "next-auth/react";
 
 const UPDATE_USER = gql`
@@ -27,6 +27,7 @@ export default function Intro() {
   const { data: session, status } = useSession();
   const email = (session?.user?.email ?? "").trim();
   const [updateUser, { loading }] = useMutation(UPDATE_USER);
+  const firstLogin = (session as any)?.first_login ?? null;
 
   useEffect(() => {
     if (status === "unauthenticated") router.replace("/login");
@@ -34,7 +35,9 @@ export default function Intro() {
 
   const handleNext = async () => {
     if (!name.trim()) {
-      toast("อย่าลืมกรอกชื่อนะ 😊\nเราอยากรู้จักคุณมากกว่านี้ ❤️", { icon: "🔔" });
+      toast("อย่าลืมกรอกชื่อนะ 😊\nเราอยากรู้จักคุณมากกว่านี้ ❤️", {
+        icon: "🔔",
+      });
       return;
     }
     try {
@@ -51,14 +54,14 @@ export default function Intro() {
 
   const handleClickToHome = async () => {
     try {
-      const now = new Date().toISOString();
-      await updateUser({ variables: { email, first_login: now } });
+      if (!firstLogin) {
+        const now = new Date().toISOString();
+        await updateUser({ variables: { email, first_login: now } });
+      }
     } catch (err: any) {
       toast.error(`บันทึกครั้งแรกไม่สำเร็จ: ${err.message}`);
     } finally {
-      setTimeout(() => {
-        router.push("/home"); 
-      }, 300);
+      router.push("/home");
     }
   };
 

@@ -512,7 +512,7 @@ export default function JigsawHome() {
 
           <div
             className="bg-[#FFE6F7]/100 rounded-2xl shadow-md w-full mx-auto flex flex-col items-center justify-center overflow-hidden
-   max-w-[1000px] px-4 py-5 sm:px-6 sm:py-8 md:px-10"
+             max-w-[1000px] px-6 md:px-10 py-8"
             style={{ maxHeight: "calc(100vh - 260px)" }}
           >
             {/* ✅ Board Wrapper: กัน scroll + กัน selection */}
@@ -567,42 +567,41 @@ export default function JigsawHome() {
 
             <div className="flex flex-col items-center">
               {!gameOver && solved && (
-                <div className="mt-4 mb-4 flex items-center justify-center gap-2 sm:gap-3">
+                <div className="mt-4 mb-4 flex items-center justify-center gap-3">
                   <button
                     onClick={shareToInstagramStory}
-                    className="inline-flex items-center justify-center gap-2 rounded-full shadow transition
-        bg-white text-[#800055] hover:bg-white/90 border border-[#FF8DD8]
-        px-4 py-2 text-xs sm:px-6 sm:py-2 sm:text-sm"
+                    className="rounded-full px-6 py-2 shadow transition bg-white text-[#800055] hover:bg-white/90 border border-[#FF8DD8]"
                   >
                     <FaInstagram className="h-4 w-4" />
-                    <span className="sm:hidden">IG Story</span>
-                    <span className="hidden sm:inline">Share to IG Story</span>
+                    Share to IG Story
                   </button>
-
                   <button
                     onClick={downloadCurrentImage}
-                    className="inline-flex items-center justify-center gap-2 rounded-full shadow transition
-        bg-white text-[#800055] hover:bg-white/90 border border-[#FF8DD8]
-        px-4 py-2 text-xs sm:px-6 sm:py-2 sm:text-sm"
+                    className="rounded-full px-6 py-2 shadow transition bg-white text-[#800055] hover:bg-white/90 border border-[#FF8DD8]"
                   >
                     <FaDownload className="h-4 w-4" />
-                    <span className="sm:hidden">บันทึก</span>
-                    <span className="hidden sm:inline">บันทึกรูป</span>
+                    บันทึกรูป
                   </button>
-
                   <button
                     onClick={() => {
                       setSolved(false);
                       goNext();
                     }}
-                    className="inline-flex items-center justify-center gap-2 rounded-full shadow transition
-        bg-[#FF8DD8] hover:bg-[#ff70cf] text-white
-        px-4 py-2 text-xs sm:px-6 sm:py-2 sm:text-sm"
+                    className="rounded-full px-6 py-2 shadow transition bg-[#FF8DD8] hover:bg-[#ff70cf] text-white"
                   >
-                    <span>ถัดไป</span>
+                    ถัดไป
                     <IoChevronForward className="h-4 w-4" />
                   </button>
                 </div>
+              )}
+
+              {gameOver && (
+                <button
+                  onClick={startNewGame}
+                  className="rounded-full mt-4 mb-4 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 shadow"
+                >
+                  เล่นอีกครั้ง (สุ่มใหม่)
+                </button>
               )}
             </div>
           </div>

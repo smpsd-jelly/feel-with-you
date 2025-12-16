@@ -27,3 +27,10 @@ body {
   color: rgb(var(--foreground-rgb));
   
 }
+
+@layer base {
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+}
