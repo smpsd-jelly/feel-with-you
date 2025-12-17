@@ -4,6 +4,9 @@ import createUploadLink from 'apollo-upload-client/createUploadLink.mjs'
 const uploadLink = createUploadLink({
   uri: process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/graphql",
   credentials: 'include',
+  headers: {
+    "apollo-require-preflight": "true", 
+  },
 })
 
 const client = new ApolloClient({
