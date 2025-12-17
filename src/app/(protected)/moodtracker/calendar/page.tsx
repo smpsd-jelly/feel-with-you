@@ -163,6 +163,22 @@ const IG_STORY_IMAGE: Record<MoodKey, string> = {
   gloomy: "/images/mood-ig/mood-story-gloomy.png",
 };
 
+function dateOnlyLocal(d = new Date()) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`; // เช่น 2025-12-18
+}
+
+function monthRangeDateOnly(d = new Date()) {
+  const start = new Date(d.getFullYear(), d.getMonth(), 1);
+  const end = new Date(d.getFullYear(), d.getMonth() + 1, 0); // วันสุดท้ายของเดือน
+  return {
+    start: dateOnlyLocal(start),
+    end: dateOnlyLocal(end),
+  };
+}
+
 // ------------------- Main Component -------------------
 
 export default function MoodCalendarPage() {
@@ -247,7 +263,7 @@ export default function MoodCalendarPage() {
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
   const todayDate = today.getDate();
 
-  const { start, end } = useMemo(() => monthRangeLocalISO(today), [today]);
+  const { start, end } = useMemo(() => monthRangeDateOnly(today), [today]);
   const { localStartISO } = useMemo(() => todayLocalRangeISO(), []);
 
   type CalendarItem = {
@@ -321,7 +337,7 @@ export default function MoodCalendarPage() {
     if (!moodId) return;
     if (!userIdNum) return;
 
-    const todayIso = localStartISO;
+    const todayDateOnly = dateOnlyLocal();
 
     try {
       await createMoodCalendar({
@@ -329,7 +345,7 @@ export default function MoodCalendarPage() {
           input: {
             user_id: userIdNum,
             mood_id: moodId,
-            mood_date: todayIso,
+            mood_date: todayDateOnly,
           },
         },
       });

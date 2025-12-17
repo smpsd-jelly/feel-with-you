@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 
-const PUBLIC_PATHS = ["/after-login", "/jigsaw-home"]; 
+const PUBLIC_PATHS = ["/after-login"]; 
 
 export async function middleware(req: NextRequest) {
   const { pathname, searchParams } = req.nextUrl;
