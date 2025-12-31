@@ -141,7 +141,7 @@ export default function MusicPage() {
 
         <div className="flex-1 flex flex-col justify-center items-center">
           <div className="text-center text-5xl sm:text-6xl md:text-6xl lg:text-7xl mb-4 text-[#CF86AD] drop-shadow-md">
-            ตาข่ายดักฝัน
+            Feelcatche
           </div>
           {videoIds.length > 0 ? (
             <MusicYoutubeComponent videoIds={videoIds} />
