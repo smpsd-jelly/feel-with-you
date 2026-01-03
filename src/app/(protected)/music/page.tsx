@@ -30,31 +30,10 @@ const GET_MOOD_MUSIC_BY_MOOD_ID = gql`
     }
   }
 `;
-
-function todayUtcRange() {
+function todayThaiRange() {
   const now = new Date();
-  const start = new Date(
-    Date.UTC(
-      now.getUTCFullYear(),
-      now.getUTCMonth(),
-      now.getUTCDate(),
-      0,
-      0,
-      0,
-      0
-    )
-  );
-  const end = new Date(
-    Date.UTC(
-      now.getUTCFullYear(),
-      now.getUTCMonth(),
-      now.getUTCDate() + 1,
-      0,
-      0,
-      0,
-      0
-    )
-  );
+  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+  const end = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0, 0);
   return { start: start.toISOString(), end: end.toISOString() };
 }
 
@@ -85,7 +64,7 @@ export default function MusicPage() {
     }, 500);
   };
 
-  const { start, end } = todayUtcRange();
+  const { start, end } = todayThaiRange();
 
   // 1) ดึง mood วันนี้ของ user
   const userIdNum =

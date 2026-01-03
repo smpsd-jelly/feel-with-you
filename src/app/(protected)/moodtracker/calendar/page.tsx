@@ -172,10 +172,10 @@ function dateOnlyLocal(d = new Date()) {
 
 function monthRangeDateOnly(d = new Date()) {
   const start = new Date(d.getFullYear(), d.getMonth(), 1);
-  const end = new Date(d.getFullYear(), d.getMonth() + 1, 0); // วันสุดท้ายของเดือน
+  const endExclusive = new Date(d.getFullYear(), d.getMonth() + 1, 1);
   return {
     start: dateOnlyLocal(start),
-    end: dateOnlyLocal(end),
+    end: dateOnlyLocal(endExclusive),
   };
 }
 
@@ -625,14 +625,22 @@ export default function MoodCalendarPage() {
         )}
 
         <div className="grid grid-cols-7 border mt-4 text-center text-[10px] sm:text-sm md:text-base w-full max-w-[400px] sm:max-w-[1000px]">
-          {days.map((day) => (
-            <div
-              key={day}
-              className="py-1 sm:py-2 font-bold border border-red-300 text-[#E75C5C] bg-[#FFF8F8] text-[10px] sm:text-sm"
-            >
-              {day[0]}
-            </div>
-          ))}
+          {days.map((day) => {
+            const full = day.charAt(0) + day.slice(1).toLowerCase(); // Monday
+            const short = full.slice(0, 3); // Mon
+
+            return (
+              <div
+                key={day}
+                className="py-1 sm:py-2 font-bold border border-red-300 text-[#E75C5C] bg-[#FFF8F8] text-[10px] sm:text-sm"
+              >
+                <span className="sm:hidden">{full[0]}</span>
+                <span className="hidden sm:inline md:hidden">{short}</span>
+                <span className="hidden md:inline">{full}</span>
+              </div>
+            );
+          })}
+
           {calendarCells}
         </div>
 
