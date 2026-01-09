@@ -316,7 +316,7 @@ export default function QuestionIntroPage() {
                       text-sm sm:text-base
                       rounded-full shadow-md transition transform active:scale-95"
                   >
-                    มากที่สุด
+                    ใช่เลย
                   </button>
                 </div>
               </div>
